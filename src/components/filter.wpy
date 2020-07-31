@@ -1,0 +1,252 @@
+<template>
+    <view class="filter-box {{status?'show':''}}" @tap.stop="hide" catchtouchmove="preventTouchMove">
+        <view class="content" @tap.stop="empty">
+            <view class="content-body">
+                <view class="filter-item">
+                    <view class="filter-item-title">价格区间(元)</view>
+                    <view class="filter-item-body">
+                        <view class="filter-item-body-item {{money_index == 1 ? 'choice':''}}" @tap.stop="money_choice(1,0,10)">0元-10元</view>
+                        <view class="filter-item-body-item {{money_index == 2 ? 'choice':''}}" @tap.stop="money_choice(2,10,20)">10元-20元</view>
+                        <view class="filter-item-body-item {{money_index == 3 ? 'choice':''}}" @tap.stop="money_choice(3,20,50)">20元-50元</view>
+                        <view class="filter-item-body-item {{money_index == 4 ? 'choice':''}}" @tap.stop="money_choice(4,50,'')">50元以上</view>
+                    </view>
+                    <view class="filter-price-box">
+                        <input type="text" class="filter-price-start" bindinput="money_start_input" value="{{money_start}}" />
+                        <view class="split"></view>
+                        <input type="text" class="filter-price-end" bindinput="money_end_input" value="{{money_end}}" />
+                    </view>
+                </view>
+                <view class="filter-item">
+                    <view class="filter-item-title">是否为品牌商品</view>
+                    <view class="filter-item-body">
+                        <view class="filter-item-body-item {{only_pinpai?'choice':''}}" @tap.stop="only_pinpai_click">品牌商品</view>
+                    </view>
+                </view>
+                <!-- <view class="filter-item">
+                    <view class="filter-item-title">是否含优惠券</view>
+                    <view class="filter-item-body">
+                        <view class="filter-item-body-item {{only_quan?'choice':''}}" @tap.stop="only_quan_click">含优惠券</view>
+                    </view>
+                </view> -->
+            </view>
+            <view class="content-footer">
+                <view class="content-footer-btn filter-clear" @tap.stop="clear">清空</view>
+                <view class="content-footer-btn filter-confirm" @tap.stop="confirm">确定</view>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from "wepy";
+    export default class Filter extends wepy.component {
+        data = {
+            status: false, // 是否展示
+            hasfilter: false, // 是否存在筛选条件
+            money_index: '',
+            money_start: '',
+            money_end: '',
+            only_pinpai: false,
+            only_quan: false
+        }
+        // 判断是否存在状态
+        handler_has_filter(){
+            if(this.money_start=='' && this.money_end == '' && this.only_pinpai == false && this.only_quan == false){
+                this.hasfilter = false
+            }else{
+                this.hasfilter =true
+            }
+        }
+        methods = {
+            show() {
+                // 展示box
+                this.status = true;
+                this.$apply()
+            },
+            hide() {
+                // 隐藏box
+                this.status = false
+                this.$apply()
+            },
+            // 清空规则
+            clear() {
+                this.hasfilter = false
+                this.money_index = ''
+                this.money_start = ''
+                this.money_end = ''
+                this.only_pinpai = false
+                this.only_quan = false
+                this.$apply()
+            },
+            // 应用规则
+            confirm(){
+                this.$emit('apply_filter', this.money_start, this.money_end, this.only_pinpai, this.only_quan);
+                this.status = false
+                this.$apply()
+            },
+            empty() {
+                // 点击当前的box 返回空
+                return false;
+            },
+            preventTouchMove() {
+                // 防止底层滚动
+                return false;
+            },
+            // 处理金额选择
+            money_choice(index,min,max){
+                if(index == this.money_index){
+                    this.money_index = ''
+                    this.money_start = ''
+                    this.money_end = ''
+                }else{
+                    this.money_index = index
+                    this.money_start = min
+                    this.money_end = max
+                }
+                this.handler_has_filter()
+                this.$apply()
+            },
+
+            // 处理品牌的点击
+            only_pinpai_click(){
+                if(this.only_pinpai){
+                    this.only_pinpai = false
+                }else{
+                    this.only_pinpai = true
+                }
+                this.handler_has_filter()
+                this.$apply()
+            },
+            // 处理只看优惠券商品的点击
+            only_quan_click(){
+                if(this.only_quan){
+                    this.only_quan = false
+                }else{
+                    this.only_quan = true
+                }
+                this.handler_has_filter()
+                this.$apply()
+            },
+
+            // 输入money_start
+            money_start_input(e){
+                if(e.detail.value == 0){
+                    this.money_start = 0.1
+                }else{
+                    this.money_start = e.detail.value
+                }
+                
+                this.$apply()
+            },
+            // 输入money_end
+            money_end_input(e){
+                this.money_end = e.detail.value
+                this.$apply()
+            },
+        }
+    }
+</script>
+
+<style lang="less">
+    .filter-box {
+        border-top: 10rpx solid #eee;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: -10;
+        .content {
+            position: absolute;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #fff;
+            overflow: hidden;
+            transform: translateY(-100vh);
+            .content-body {
+                padding: 32rpx 32rpx 0 32rpx;
+                .filter-item {
+                    margin-bottom: 20rpx;
+                    .filter-item-title {
+                        font-size: 24rpx;
+                        color: #666;
+                    }
+                    .filter-item-body {
+                        margin-top: 10rpx;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        .filter-item-body-item {
+                            background: #f4f4f4;
+                            color: #464646;
+                            line-height: 2rem;
+                            font-size: 26rpx;
+                            padding: 0 20rpx;
+                            border-radius: 5rpx;
+                        }
+                        .filter-item-body-item.choice{
+                            background: linear-gradient(to right, #a936ff, #7d31ff);
+                            color: white;
+                        }
+                    }
+                    .filter-price-box {
+                        margin: 20rpx 0;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        input {
+                            background: #f4f4f4;
+                            color: #464646;
+                            line-height: 2rem;
+                            height: 2rem;
+                            text-align: center;
+                            font-size: 26rpx;
+                        }
+                        .split {
+                            height: 3rpx;
+                            background: #7e7e7e;
+                            width: 40rpx;
+                            margin: 0 10rpx;
+                        }
+                    }
+                }
+            }
+            .content-footer {
+                border-top: 1px solid #eee;
+                display: flex;
+                align-items: center;
+                .content-footer-btn {
+                    width: 100%;
+                    height: 3rem;
+                    line-height: 3rem;
+                    text-align: center;
+                    font-size: 30rpx;
+                }
+                .content-footer-btn.filter-clear {
+                    background: white;
+                }
+                .content-footer-btn.filter-confirm {
+                    color: white;
+                    background: linear-gradient(to right, #a936ff, #7d31ff);
+                }
+            }
+        }
+    }
+    .filter-box.show {
+        position: fixed;
+        z-index: 999;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        background-color: rgba(0, 0, 0, 0.5);
+        .content {
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+    }
+</style>

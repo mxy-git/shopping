@@ -1,0 +1,19 @@
+<template>
+    <web-view wx-if="{{webUrl}}" class="webView" src="{{webUrl}}"></web-view>
+</template>
+
+<script>
+import wepy from 'wepy'
+export default class Webview extends wepy.page {
+  data = {
+    webUrl : null
+  }
+
+  onLoad(options) {
+    console.log(options)
+    options.webUrl && (this.webUrl = options.webUrl)
+  }
+}
+</script>
+
+

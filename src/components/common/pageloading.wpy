@@ -1,0 +1,69 @@
+<template>
+    <view class="component-page-loading">
+        <view class="loading-box">
+            <view class="square square1"></view>
+            <view class="square square2"></view>
+            <view class="square square3"></view>
+            <view class="square square4"></view>
+        </view>
+    </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+export default class Pageloading extends wepy.component{
+    
+}
+</script>
+
+<style lang="less" scoped>
+    @keyframes loading {
+        0%{
+            background: #e0e0de;
+        }
+        50%{
+            background: #d3d3d3;
+        }
+        100%{
+            background: #b5b4b2;
+        }
+    }
+    .component-page-loading{
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: #e0e0de;
+        z-index:2;
+
+        .loading-box{
+            width: 72rpx;
+            height: 72rpx;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translateX(-50%) translateY(-50%);
+            // background: white;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            .square{
+                width: 50%;
+                height: 50%;
+                animation: loading 1s infinite;
+            }
+            .square2{
+                animation-delay: 0.25s;
+            }
+            .square3{
+                animation-delay: 0.75s;
+            }
+            .square4{
+                animation-delay: 0.5s
+            }
+        }
+    }
+
+
+</style>

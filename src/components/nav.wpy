@@ -1,0 +1,149 @@
+<style scoped lang='less'>
+    .header-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 10;
+        display: flex;
+        text-align: center;
+        align-items: center;
+        box-sizing:border-box;
+        .title {
+            color: #d24939;
+            font-weight: 500;
+            text-align: center;
+            font-size: 13px;
+            width: 100%;
+            text-align: center;
+        }
+        .icon-view {
+            position: fixed;
+            float: left;
+            display: flex;
+            z-index: 3;
+            align-items: center;
+            font-size: 40rpx;
+            .icon-back {
+                margin-right: 10rpx;
+                font-size: 20px;
+            }
+            .icon-home{
+                color: #d24939;
+                padding: 0 10rpx;
+                font-size: 20px;
+            }
+        }
+        .text-share {
+            color: #636363;
+            font-size: 26rpx;
+        }
+    }
+</style>
+
+<template lang="wxml">
+    <view class="header-nav" style="height:{{nav_height + nav_margin_top }}px;padding:{{nav_margin_top + 3}}px 20rpx 10rpx;line-height:{{nav_height}}px;background:{{background}};">
+        <view class="icon-view">
+            <view style="color:{{color}};" wx:if="{{showBack}}" class="icon icon-back" @tap.stop='goBack'></view>
+            <view style="color:{{color}};"  wx:if="{{showHome}}" class="icon icon-home" @tap.stop='goHome'></view>
+        </view>
+
+        <view class="title" style="color:{{color}};line-height:{{nav_height}}px;">{{title}}</view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as util from '../util/util.js'
+    export default class Nav extends wepy.component {
+        data = {
+            nav_margin_top: 0,
+            nav_height:0,
+            title: '',
+            showHome:false,
+            showBack:false,
+            background:'white',
+            color:"black"
+        }
+        methods = {
+            init(res){
+                this.title = res.title
+                this.background = res.background || 'white'
+                this.color = res.color || 'black'
+                this.handlerNavBar()
+                this.handlerShowBack()
+                this.$apply()
+            },
+            goBack(){
+                wepy.navigateBack({
+                    delta:1
+                })
+            },
+            setTitle(res){
+                this.title = res.title
+                this.$apply()
+            },
+            // 返回首页
+            goHome() {
+                wepy.switchTab({
+                    url: '/pages/index'
+                })
+            },
+        }
+    
+        // 处理导航条
+        async handlerNavBar(){
+            let getMenuButtonBoundingClientRect = () =>{
+                return new Promise(function(resolve, reject) {
+                    let res;
+                    try {
+                        res = wx.getMenuButtonBoundingClientRect()
+                    } catch (error) {
+                        console.log(error);
+                        reject({errMsg:'getMenuButtonBoundingClientRect:falied'});
+                    }
+                    
+                    console.log('res1',res)
+                    if (res && res instanceof Object){
+                        res.errMsg = 'getMenuButtonBoundingClientRect:ok';
+                        resolve(res);
+                    } else {
+                        reject({errMsg:'getMenuButtonBoundingClientRect:falied'});
+                    }
+                }).catch((err)=>{
+                    return err
+                })
+            }
+            let systeminfo = wx.getSystemInfoSync();
+            const version = systeminfo.SDKVersion
+            if(util.compareVersion(version,'2.1.0') >= 0){
+                let res = await getMenuButtonBoundingClientRect()
+                console.log(res)
+                if(res && res.errMsg == 'getMenuButtonBoundingClientRect:ok1'){
+                    this.nav_margin_top = res.top
+                    this.nav_height = res.height + 4
+                }else{
+                    this.nav_margin_top = systeminfo.statusBarHeight
+                    this.nav_height = 42
+                }
+            }else{
+                this.nav_margin_top = systeminfo.statusBarHeight
+                this.nav_height = 42
+            }
+            
+            
+            this.$apply()
+        }
+        // 判断是否展示回退按钮
+        handlerShowBack(){
+             let pages = getCurrentPages();
+             if(pages.length === 1){
+                 this.showBack = false
+                 this.showHome = true
+             }else{
+                 this.showBack = true
+             }
+             this.$apply()
+        }
+    }
+</script>

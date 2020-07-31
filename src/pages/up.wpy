@@ -1,0 +1,36 @@
+<template>
+    <view></view>
+</template>
+
+<script>
+import wepy from "wepy";
+export default class Up extends wepy.page{
+    config = {
+        navigationBarTitleText: '每日必拼',
+    }
+
+    onLoad(){
+        wx.removeStorage({
+            key: 'userinfo',
+            success (res) {
+                wx.showModal({
+                    title: '成功',
+                    content: '处理成功',
+                    showCancel:false,
+                    success (res) {
+                        if (res.confirm) {
+                            wx.reLaunch({
+                                url: '/pages/me'
+                            })
+                        }
+                    }
+                });
+            }
+        })
+    }
+}
+</script>
+
+<style lang="less" scoped>
+
+</style>

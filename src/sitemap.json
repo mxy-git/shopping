@@ -1,0 +1,72 @@
+{
+    "rules": [
+        {
+            "action": "allow",
+            "page": "pages/index",
+            "params": [],
+            "matching": "exact"
+        },
+        {
+            "action": "allow",
+            "page": "pages/search",
+            "params": [
+                "key"
+            ],
+            "matching": "partial"
+        },
+        {
+            "action": "allow",
+            "page": "pages/goodsdetail", 
+            "params": [
+                "goods_id",
+                "g"
+            ],
+            "matching": "partial"
+        },
+        {
+            "action": "allow",
+            "page": "pages/pinpai", 
+            "params": [],
+            "matching": "exact"
+        },
+        {
+            "action": "allow",
+            "page": "pages/haodian", 
+            "params": [],
+            "matching": "exact"
+        },
+        {
+            "action": "allow",
+            "page": "pages/activities", 
+            "params": [
+                "activitiesName",
+                "activitiesType"
+            ],
+            "matching": "partial"
+        },
+        {
+            "action": "allow",
+            "page": "pages/shop", 
+            "params": [
+                "mall_id"
+            ],
+            "matching": "partial"
+        },
+        {
+            "action": "allow",
+            "page": "pages/rank", 
+            "params": [],
+            "matching": "exact"
+        },
+        {
+            "action": "allow",
+            "page": "pages/bargain", 
+            "params": [],
+            "matching": "exact"
+        },
+        {
+            "action": "disallow",
+            "page": "*"
+        }
+    ]
+}

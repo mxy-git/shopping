@@ -1,0 +1,487 @@
+<template>
+    <view class="content">
+        <block wx:if="{{wxUser.role > 0}}">
+            <block wx:if="{{list.length>0}}">
+                <view class="list">
+                    <block  wx:for="{{list}}" wx:key="index" wx:for-item="item">
+                        <view class="list-item" @tap.stop="itemClick('{{index}}')">
+                            <view class="left">
+                                <image lazy-load="true" src="{{item.goods_image}}" />
+                                <block wx:if="{{item.status == -1}}">
+                                    <view class="image-kanjia-failed">砍价失败</view>
+                                </block>
+                                <block wx:if="{{item.status == -2}}">
+                                    <view class="image-kanjia-failed">已逾期</view>
+                                </block>
+                                <block wx:if="{{item.status == -3}}">
+                                    <view class="image-kanjia-failed">已退货</view>
+                                </block>
+                            </view>
+                            <view class="right">
+                                <view class="top">{{item.goods_name}}</view>
+                                <block wx:if="{{item.status == -3}}">
+                                    <view class="bottom">
+                                        <view class="flex">
+                                            <view class="kanjia-failed">已退货</view>
+                                            <view class="action " @tap.stop="goDetail('{{item.id}}','{{item.bargain_id}}')">查看砍价</view>
+                                        </view>
+                                    </view>
+                                </block>
+                                <block wx:if="{{item.status == -2}}">
+                                    <view class="bottom">
+                                        <view class="flex">
+                                            <view class="kanjia-failed">已逾期</view>
+                                            <view class="action " @tap.stop="goDetail('{{item.id}}','{{item.bargain_id}}')">查看砍价</view>
+                                        </view>
+                                    </view>
+                                </block>
+                                <block wx:if="{{item.status == -1}}">
+                                    <view class="bottom">
+                                        <view class="flex">
+                                            <view class="kanjia-failed">砍价失败</view>
+                                            <view class="action rebargain" @tap.stop="reBargain('{{item.id}}','{{item.bargain_id}}')">重砍一个</view>
+                                        </view>
+                                    </view>
+                                </block>
+                                <block wx:if="{{item.status == 0}}">
+                                    <view class="remain-time">
+                                        <text class="time-box">{{item.daojishi.h}}</text>
+                                        <text class="time-text">:</text>
+                                        <text class="time-box">{{item.daojishi.m}}</text>
+                                        <text class="time-text">:</text>
+                                        <text class="time-box">{{item.daojishi.s}}</text>
+                                        <text class="end-text">后结束</text>
+                                    </view>
+                                    <view class="bottom">
+                                        <view class="flex">
+                                            <view class="price"><text class="kan">还差</text>¥<text class="price-number">{{item.remain_money}}</text></view>
+                                            <view class="action" @tap.stop="goDetail('{{item.id}}','{{item.bargain_id}}')">继续砍价</view>
+                                        </view>
+                                    </view>
+                                </block>
+                                <block wx:if="{{item.status == 1}}">
+                                    <view class="bottom">
+                                        <view class="flex">
+                                            <view class="kanjia-success">砍价成功</view>
+                                            <view class="action free-get" @tap.stop="goDetail('{{item.id}}','{{item.bargain_id}}')">免费领取</view>
+                                        </view>
+                                    </view>
+                                </block>
+
+                                <block wx:if="{{item.status == 2}}">
+                                    <view class="bottom">
+                                        <view class="flex">
+                                            <view class="kanjia-success">待确认收货</view>
+                                            <view class="action check-fanxian" @tap.stop="checkFanxian">查看返现</view>
+                                        </view>
+                                    </view>
+                                </block>
+                                <block wx:if="{{item.status == 3}}">
+                                    <view class="bottom">
+                                        <view class="flex">
+                                            <view class="kanjia-success">待返现</view>
+                                            <view class="action check-fanxian" @tap.stop="checkFanxian">查看返现</view>
+                                        </view>
+                                    </view>
+                                </block>
+                                <block wx:if="{{item.status == 4}}">
+                                    <view class="bottom">
+                                        <view class="flex">
+                                            <view class="kanjia-success">已返现</view>
+                                            <view class="action check-fanxian" @tap.stop="checkFanxian">查看返现</view>
+                                        </view>
+                                    </view>
+                                </block>
+                            </view>
+                        </view>
+                    </block>
+                </view>
+            </block>
+            <block wx:else>
+                <view class="no-data">暂时数据</view>
+            </block>
+        </block>
+        <block wx:else>
+            <view class="no-power">
+                <view class="no-power-content">
+                    <view class="body">您没有权限访问砍价</view>
+                    <button open-type="contact" session-from="{{sessionFrom}}" send-message-title="砍价客服" send-message-img="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/quick_send.png" show-message-card="true" send-message-path="/pages/custom/custom_392946996">联系客服</button>
+                </view>
+            </view>
+        </block>
+    </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import * as api from '../api/api.js'
+import * as util from '../util/util.js'
+export default class Bargainofme extends wepy.page {
+    config = {
+        navigationBarTitleText: '我的砍价',
+        navigationBarTextStyle: 'black',
+        enablePullDownRefresh: true,
+    }
+
+    data = {
+        wxUser:{
+            role:1
+        },
+        sessionFrom:null,
+        list:[],
+        page:1,
+        limit:10,
+        has:true,
+        isLoading:false
+    }
+
+    // 下拉刷新
+    async onPullDownRefresh() {
+        console.log(1)
+        // 先清空定时器
+        for(let i in this.list){
+            if(this.list[i].timer){
+                clearInterval(this.list[i].timer)
+            }
+        }
+        this.list = []
+        this.$apply()
+        this.page = 1
+        this.has = true
+        this.isLoading = false
+        
+        await this.getList()
+        wx.stopPullDownRefresh()
+    }
+
+    onUnload(){
+        if(this.list){
+            for(let i in this.list){
+                if(this.list[i].timer){
+                    clearInterval(this.list[i].timer)
+                }
+            }
+        }
+    }
+
+    async onLoad(){
+        let backpage = encodeURIComponent("/pages/bargaindetail")
+        let res = await this.$parent.LoginCheck(backpage, 1)
+        if (!res) {
+            return false
+        } else {
+            wx.hideShareMenu()
+            this.wxUser = res
+            this.sessionFrom = JSON.stringify({
+                nickName: this.wxUser.nickname,
+                avatarUrl: this.wxUser.avatarurl,
+                source: '砍价联系客服'
+            })
+            // 获取我的砍价的列表
+            this.list = []
+            this.$apply()
+            this.page = 1
+            this.has = true
+            this.isLoading = false
+            this.getList()
+        }
+    }
+
+    onReachBottom(){
+        console.log(1)
+        this.getList()
+    }
+
+    methods = {
+        goDetail(id,bargain_id,event){
+            wepy.navigateTo({
+                url:'/pages/bargaindetail?id='+bargain_id+"&bargain_id="+id
+            })
+        },
+
+        // 重新砍价,其中id是用户砍价记录的id,bargain_id为砍价商品的记录id
+        async reBargain(id,bargain_id,event){
+            let param = {
+                id:bargain_id
+            }
+            let response = await api.userExistBargainForGoods(param)
+            if(response.code === 200){
+                if(response.has === true){
+                    wepy.navigateTo({
+                        url:'/pages/bargaindetail?id='+bargain_id+"&bargain_id="+ response.data.bargain_id
+                    })
+                }else{
+                    wepy.navigateTo({
+                        url:'/pages/bargaindetail?id='+bargain_id
+                    })
+                }
+            }else{
+                wepy.showToast({
+                    title:response.msg,
+                    icon:'none'
+                })
+            }
+        },
+        checkFanxian(){
+            wepy.navigateTo({
+                url:'/pages/bargainreback'
+            })
+        },
+        itemClick(index,event){
+            console.log(index)
+        }
+    }
+
+    async getList() {
+        if(this.isLoading === false && this.has){
+            this.isLoading = true
+            wepy.showLoading()
+            let param = {
+                page:this.page
+            }
+            let that = this;
+            let response = await api.getMyBargainList(param)
+            if(response.code === 200){
+                for(let i of response.data){
+                    this.list.push(i)
+                }
+
+                // 重置所有的季倒计时
+                for(let i in this.list){
+                    if(this.list[i].timer){
+                        clearInterval(this.list[i].timer)
+                    }
+                }
+
+                // 重新开启所有的计时器
+                for(let i in this.list){
+                    if(this.list[i].status === 0){
+                        this.list[i].daojishi = util.formatTime(this.list[i].remain_time)
+                        this.list[i].remain_time--;
+                        // // 创建定时器
+                        this.list[i].timer = setInterval(() => {
+                            that.list[i].daojishi = util.formatTime(that.list[i].remain_time)
+                            this.list[i].remain_time--;
+                            that.$apply()
+                        }, 1000);
+                    }
+                }
+                this.$apply()
+                this.page++
+                if(response.data.length < this.limit){
+                    this.has = false
+                }
+            }else{
+                wepy.showToast({
+                    title: response.msg,
+                    icon: 'none'
+                })
+            }
+            this.isLoading = false
+            wepy.hideLoading()
+        }
+    }
+}
+</script>
+<style>
+    page{
+        height: 100%;
+        padding-bottom: 20rpx;
+        box-sizing: border-box;
+    }
+</style>
+
+<style lang="less" scoped>
+    .content{
+        height: 100%;
+        .no-power {
+            text-align: center;
+            margin: 100rpx 30rpx;
+            color: #666;
+            font-size: 30rpx;
+            
+            .no-power-content{
+                .no-power-body{
+                    text-align: center;
+                }
+            }
+            button {
+                margin-top: 30rpx;
+                width: 100%;
+                font-size: 30rpx;
+                background-color: #FF9A8B;
+                background-image: linear-gradient(220deg, #FF9A8B 0%, #FF6A88 55%, #FF99AC 100%);
+                background-image: -webkit-linear-gradient(220deg, #FF9A8B 0%, #FF6A88 55%, #FF99AC 100%);
+                background-image: -moz-linear-gradient(220deg, #FF9A8B 0%, #FF6A88 55%, #FF99AC 100%);
+                background-image: -o-linear-gradient(220deg, #FF9A8B 0%, #FF6A88 55%, #FF99AC 100%);
+                border: none;
+                color: white;
+            }
+        }
+
+        .no-data{
+            text-align: center;
+            margin-top: 20rpx;
+            font-size: 30rpx;
+            color: #666;
+        }
+
+        .list{
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            margin: 10rpx 30rpx; 
+            width: auto;
+            overflow: scroll;
+            .list-item{
+                overflow: hidden;
+                display: flex;
+                flex-direction: row;
+                border-bottom: 1px solid #eee;
+                padding: 20rpx;
+                box-sizing: border-box;
+                margin: 10rpx 0;
+                background: #f5f5f7;
+                border-radius: 5rpx;
+                &:last-child{
+                    border-bottom: none;
+                }
+                .remain-time {
+                        display: flex;
+                        flex-direction: row;
+                        justify-content: flex-start;
+                        align-items: center;
+                        .time-box {
+                            color: white;
+                            background: #ff7886;
+                            border-radius: 5rpx;
+                            align-items: center;
+                            font-size: 26rpx;
+                            height: 30rpx;
+                            line-height: 30rpx;
+                            width: 30rpx;
+                            padding: 5rpx;
+                        }
+                        text {
+                            padding: 5rpx;
+                            margin: 3rpx;
+                        }
+                        .time-text {
+                            color: #ff7886;
+                        }
+                        .end-text {
+                            color: #ff7886;
+                            font-weight: bold;
+                            font-size: 28rpx;
+                        }
+                    }
+
+                .left{
+                    position: relative;
+                    image{
+                        width: 210rpx;
+                        height: 210rpx;
+                        border-radius: 10rpx;
+                    }
+                    .image-kanjia-failed{
+                        position:absolute;
+                        width: 120rpx;
+                        height: 120rpx;
+                        left: 50%;
+                        top: 50%;
+                        line-height: 120rpx;
+                        color: white;
+                        text-align: center;
+                        border: 2rpx solid white;
+                        font-size: 30rpx;
+                        background: rgba(0, 0, 0, 0.2);
+                        border-radius: 50%;
+                        padding: 20rpx;
+                        font-weight: bold;
+                        transform: translateX(-50%) translateY(-50%) rotate(-20deg);;
+                    }
+                    margin-right: 20rpx;
+                }
+                .right{
+                    max-width: 440rpx;
+                    flex-grow: 1;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+
+                    .top{
+                        font-size: 26rpx;
+                        color: #1d1d1f;
+                        font-weight: 500;
+                    }
+                    .bottom{
+                        .desc{
+                            color: #8d93a0;
+                            font-size: 22rpx;
+                            padding-bottom: 20rpx;
+                        }
+                        
+                        .flex{
+                            display: flex;
+                            flex-direction: row;
+                            justify-content: space-between;
+                            align-items: center;
+
+                            .kanjia-success{
+                                color: #07c160;
+                                font-size: 28rpx;
+                            }
+
+                            .kanjia-failed{
+                                color: #666;
+                                font-size: 28rpx;
+                            }
+
+                            .free-get{
+                                background: linear-gradient(to right,#5cd9bb,#24c9a7) !important;
+                            }
+
+                            .check-fanxian {
+                                background: #fb916c !important;
+                            }
+
+                            .price{
+                                color: #1d1d1f;
+                                font-weight: bold;
+                                font-size: 22rpx;
+                                display: flex;
+                                align-items: center;
+                                .price-number{
+                                    font-size: 34rpx;
+                                    margin-left:5rpx;
+                                }
+                                .kan{
+                                    background: #ff6b87;
+                                    color: white;
+                                    padding: 5rpx 10rpx;
+                                    border-radius: 5rpx;
+                                    margin-right: 10rpx;
+                                }
+                            }
+                            .action{
+                                background: linear-gradient(to right, #ff8287, #ff5286);
+                                padding: 10rpx 15rpx;
+                                border-radius: 5rpx;
+                                color: white;
+                                font-size: 28rpx;
+                                letter-spacing: 2rpx;
+                                font-weight: bold;
+                            }
+
+                            .rebargain{
+                                background: rgba(0, 0, 0, 0.4) !important;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+</style>
+
+

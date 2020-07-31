@@ -1,0 +1,208 @@
+<template>
+    <view id="registerCa" style="padding-top:100rpx">
+        <image class="logo" mode="scaleToFill" wx:if="{{config.ossImg}}" src="{{config.ossImg}}/logo-0.png" />
+        <view class="slogan">
+            <view>自</view>
+            <view>购</view>
+            <view>省</view>
+            <view>钱</view>
+            <view>分</view>
+            <view>享</view>
+            <view>赚</view>
+            <view>钱</view>
+        </view>
+        
+        <button bindgetphonenumber="bindgetphonenumber" class="com-btn-2 register" open-type="getPhoneNumber">立即登录</button>
+        <view class="hint">提示：授权绑定手机号,立刻开始省钱</view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from '../api/api.js'
+    import config from "../config.js"
+    export default class Goodsdetail extends wepy.page {
+        config = {
+            backgroundTextStyle: 'light',
+            navigationBarBackgroundColor: '#2f323b',
+            navigationBarTitleText: '',
+            navigationStyle: 'custom'
+        }
+        data = {
+            wxUser: null,
+            config:config,
+            backpage:'',
+            backtype:''
+        }
+        async onLoad(options) {
+            console.log(options)
+            let res = await this.$parent.LoginCheck()
+            if (!res) {
+                return false
+            } else {
+                this.wxUser = res
+            }
+            this.backpage = ( options.backpage && options.backpage != 'undefined') ? decodeURIComponent(options.backpage):''
+			this.backtype = options.backtype ? parseInt(options.backtype):1
+        }
+        methods = {
+            // 绑定手机号码获取
+            async bindgetphonenumber(event){
+                console.log(event);
+                // 执行登录逻辑
+				let loginInfo = await wepy.login()
+				if(loginInfo.errMsg !== 'login:ok'){
+					wepy.showToast({
+						title:'登录失败',
+						icon: 'none'
+					});
+					return false;
+				}
+                if(event.detail.errMsg == "getPhoneNumber:ok"){
+                    let param = {
+                        pid: this.$parent.globalData.pid || 0,
+                        tid: this.$parent.globalData.tid || 0,
+                        iv: event.detail.iv,
+                        avatarurl:this.wxUser.avatarurl,
+                        nickname:this.wxUser.nickname,
+                        encryptedData: event.detail.encryptedData,
+                        code:loginInfo.code
+                    }
+                    let response = await api.phoneRegister(param)
+                    if(response.code === 200){
+                        if(this.backpage){
+                            if (this.backtype === 1) {
+                                wepy.redirectTo({
+                                    url: this.backpage
+                                });
+                            } else{
+                                wepy.switchTab({
+                                    url: this.backpage
+                                });
+                            }
+                        }else{
+                                wepy.switchTab({
+                                    url: '/pages/index'
+                                });
+                        }
+                    }
+                }
+            }
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    #registerCa {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #2f323b;
+        background-size: 750rpx 1338rpx;
+        overflow: hidden;
+        overflow-y: auto;
+        .logo {
+            display: block;
+            width: 166rpx;
+            height: 195rpx;
+            margin: 150rpx auto 0 auto;
+        }
+        .slogan {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+            font-size: 26rpx;
+            margin-top: 50rpx;
+            view {
+                margin: 0 10rpx;
+            }
+            view:nth-child(3) {
+                color: #cfaa71;
+            }
+            view:nth-child(5) {
+                margin-left: 40rpx;
+            }
+        }
+        .slogan::before {
+            position: absolute;
+            content: '';
+            top: -20rpx;
+            left: 50%;
+            width: 40rpx;
+            margin-left: -20rpx;
+            height: 4rpx;
+            background-color: #cfaa71;
+        }
+        .key {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            width: 656rpx;
+            height: 90rpx;
+            margin: 130rpx auto 0 auto;
+            border-bottom: 1px solid #dbdbdb;
+            text-align: center;
+            .icon-edit {
+                color: #fff;
+                font-size: 27rpx;
+                margin-right: 30rpx;
+                margin-top: 10rpx;
+            }
+            .val {
+                flex: 1;
+                color: #fff;
+                height: 100%;
+                line-height: 100rpx;
+                font-size: 28rpx;
+            }
+            .val-placeholder {
+                color: #d7d7d7;
+            }
+        }
+        .register {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 656rpx;
+            height: 100rpx;
+            background: #cfaa71;
+            border-radius: 4px;
+            margin: 30rpx auto 30rpx auto;
+            margin-top: 100rpx;
+            overflow: visible;
+
+        }
+        .hint {
+            color: #999;
+            font-size: 24rpx;
+            line-height: 1;
+            text-align: center;
+            margin-top: 80rpx;
+        }
+        .agreement {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 100rpx 0;
+            font-size: 30rpx;
+            color: white;
+            text-decoration: underline;
+            .agree {
+                width: 60rpx;
+                height: 60rpx;
+                line-height: 60rpx;
+                text-align: center;
+                .title {
+                    font-size: 26rpx;
+                    text-decoration: underline;
+                }
+            }
+        }
+    }
+</style>

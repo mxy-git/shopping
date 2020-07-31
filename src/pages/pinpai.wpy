@@ -1,0 +1,270 @@
+<template>
+    <view class="content">
+        <scroll-view class="header" id="menu" scroll-x="true" scroll-left="{{menuScrollLeft}}">
+            <view class="menu">
+                <view class="item {{item.status?'active':''}}" wx:for="{{category}}" wx:key="index">
+                    <text @tap.stop="selectCategory('{{index}}','{{item.id}}')">{{item.category}}</text>
+                </view>
+            </view>
+        </scroll-view>
+
+        <view class="body" wx:if="{{shopList.length > 0}}">
+            <view class="item" wx:for="{{shopList}}" wx:key="index" wx:for-item="item" >
+                <view class="item-header">
+                    <view class="item-header-left">
+                        <image  src="{{item.mall_img}}" lazy-load="true" />
+                        <text>{{item.mall_name}}</text>
+                    </view>
+                    <view class="item-header-right">
+                        <text class="go-shop" @tap.stop="goShop('{{item.mall_id}}')">进店逛逛</text>
+                    </view>
+                </view>
+                <scroll-view class="item-body" scroll-x>
+                    <view class="item-body-goodslist">
+                        <view class="goods" wx:for="{{item.goodslist}}" wx:key='index2' wx:for-item="goods" @tap.stop="goDetail('{{goods.goods_id}}')">
+                            <image lazy-load="true" src="{{goods.image}}"  />
+                            <view class="goods-name"><text>{{goods.name}}</text></view>
+                            <view class="goods-body">
+                                <view class="goods-body-left">
+                                    <text class="quan">券</text>
+                                    <text class="quan-price">{{goods.coupon > 0.00 ? "¥"+goods.coupon :'0'}}</text>
+                                </view>
+                                <view class="goods-body-rigth">销量{{goods.sales_tip}}件</view>
+                            </view>
+                            <view class="goods-footer">
+                                <view class="goods-footer-left">
+                                    <text class="quan">券后¥</text>
+                                    <text class="price">{{goods.price}}</text>
+                                </view>
+                                <view class="goods-footer-right" >
+                                    <block wx:if="{{wxUser.role > 0}}">
+                                        <button @tap.stop='doNothing' data-item="{{goods}}" class="share" open-type='share'>赚{{goods.commission}}</button>
+                                    </block>
+                                    <block wx:else>
+                                        <button @tap.stop='goPDDApp' data-item="{{goods}}" class="buy">立即购买</button>
+                                    </block>
+                                </view>
+                            </view>
+                        </view>
+                    </view>
+                </scroll-view>
+            </view>
+        </view>
+
+        <view style="text-align:center;color:#666;font-size:30rpx;margin-top:200rpx;" wx:else>暂无数据</view>
+    </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import * as api from '../api/api.js'
+export default class Pinpai extends wepy.page{
+    config = {
+        navigationBarTitleText: '品牌馆',
+        navigationBarTextStyle: 'black',
+    }
+    data = {
+        wxUser:null,
+        category:[],
+        shopList:[],
+        menuScrollLeft:0,
+        current:0,
+        page:1,
+        has:true,
+        isLoading:false,
+        share:null,
+        menuScrollWidth:0
+    }
+
+    async onLoad(){
+        let backpage = encodeURIComponent("/pages/haodian")
+        let res = await this.$parent.LoginCheck(backpage, 1)
+        if (!res) {
+            return false
+        }else{
+            this.wxUser = res
+            await this.getCategory()
+            this.getShopList(true)
+            this.getShare()
+        }
+    }
+
+    async getShare() {
+        let share = await api.getShare()
+        if (share.code === 200) {
+            this.share = share.data
+            this.$apply()
+        }
+    }
+
+    onReachBottom(){
+        this.getShopList()
+    }
+
+    // 获取商品列表
+    async getShopList(t){
+        if(this.has === true && this.isLoading === false){
+            this.isLoading = true;
+            wepy.showLoading({
+                title:'Loading',
+                icon:'none'
+            })
+
+            let param = {
+                page:this.page,
+                category: this.category[this.current].id,
+                role:this.wxUser.role
+            }
+            let response = await api.getPinpaiShopList(param)
+            if(response.code === 200){
+                if(t){
+                    this.shopList = []
+                    for(let i of response.data){
+                        this.shopList.push(i)
+                    }
+                }else{
+                    for(let i of response.data){
+                        this.shopList.push(i)
+                    }
+                }
+                this.$apply()
+
+                this.page++;
+                if(response.data.length == 0){
+                    this.has = false
+                }
+            }else{
+                console.log(response.msg);
+            }
+            this.isLoading = false;
+            wepy.hideLoading();
+        }
+    }
+
+    onShareAppMessage(res){
+        let share = {}
+        if(res.target){
+            let item = res.target.dataset.item
+            let path = "/pages/goodsdetail?goods_id=" + item.goods_id + "&pid=" + this.wxUser.uid
+            let title = "[拼多多] 优惠券" + item.coupon + '元' + ',原价￥' + item.old_price + " 券后价￥" + item.price
+            let img = item.image
+            share = {
+                title: title,
+                imageUrl: img,
+                path: path
+            }
+        }else {
+            let path = ''
+            if (this.wxUser.role !== 0) {
+                path = '/pages/pinpai?pid=' + this.wxUser.uid
+            } else {
+                path = '/pages/pinpai?pid=' + this.wxUser.uid
+            }
+            share = {
+                title: this.share.title,
+                path: path,
+                imageUrl: this.share.image
+            }
+        }
+        console.log('goods detail page share', share)
+        return share
+    }
+
+    // 获取品牌的列表
+    async getCategory(){
+        let response = await api.getPinpaiCategory()
+        if(response.code === 200){
+            for(let i in response.data){
+                if(i == 0){
+                    this.category.push({
+                        id:response.data[i].id,
+                        category:response.data[i].category,
+                        status: true
+                    })
+                }else{
+                    this.category.push({
+                        id:response.data[i].id,
+                        category:response.data[i].category,
+                        status: false
+                    })
+                }
+            }
+            this.$apply()
+
+            // 获取滚动条的位置
+            let that = this
+            setTimeout(() => {
+                wx.createSelectorQuery().select('#menu').boundingClientRect(function(rect) {
+                    if (rect) {
+                        that.menuScrollWidth = rect.width
+                    }
+                }).exec()
+            }, 300);
+            
+        }else{
+            wepy.showToast({
+                title: response.msg,
+                icon:'none'
+            })
+        }
+    }
+
+    methods = {
+        selectCategory(index,id,event){
+            wepy.pageScrollTo({
+                scrollTop:0,
+            })
+            let offsetLeft = event.target.offsetLeft
+            this.menuScrollLeft = offsetLeft - this.menuScrollWidth * 2 / 5
+            this.current = index
+            this.$apply()
+            for(let i in this.category){
+                this.category[i].status = false;
+            }
+
+            this.category[index].status = true;
+            this.$apply()
+            this.has = true
+            this.page = 1
+            
+            this.getShopList(true)
+        },
+        goShop(mall_id,event){
+             wepy.navigateTo({
+                url: '/pages/shop?mall_id='+mall_id
+            })
+        },
+        goDetail(goods_id,event){
+             wepy.navigateTo({
+                url: '/pages/goodsdetail?goods_id='+goods_id
+            })
+        },
+        doNothing(){
+            return false;
+        },
+        async goPDDApp(event) {
+            let data = event.target.dataset.item
+            let param = {
+                goods_id: data.goods_id,
+                from:'pinpai'
+            }
+            let response = await api.getPddWeAppInfo(param)
+            if (response.code === 200) {
+                wepy.navigateToMiniProgram({
+                    appId: response.data.appid,
+                    path: response.data.page_path,
+                    extraData: {
+                        pid: response.data.pid
+                    }
+                })
+            } else {
+                console.log('get pdd info faile')
+            }
+        },
+    }
+}
+</script>
+
+<style lang="less" scoped>
+    @import '../static/pinpai.less';
+</style>

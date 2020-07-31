@@ -1,0 +1,302 @@
+<template>
+    <view id="couponCa" style="padding-top:{{$nav$nav_margin_top + $nav$nav_height}}px">
+        <nav></nav>
+        <view class="list">
+            <view bind:tap="goodsDetails('{{item.goods_id}}')" class="single" data-goodsId="{{item.goods_id}}" wx:for="{{goodsList}}" wx:key="index">
+                <view class="left">
+                    <view class="couponBig">
+                        <view class="t">券</view>
+                        <view class="v">￥{{item.coupon_discount}}</view>
+                    </view>
+                    <view class="residue">
+                        <progress active backgroundColor="#d2d1d1" borderRadius="6rpx" class="progress" color="#2d323b" percent="{{100-item.coupon_remain_quantity_ratio}}" strokeWidth="6rpx"></progress>
+                        <view class="group">
+                            <view class="val">还剩{{item.coupon_remain_quantity}}张</view>
+                            <view class="percentage">{{item.coupon_remain_quantity_ratio}}%</view>
+                        </view>
+                    </view>
+                </view>
+                <view class="right">
+                    <view class="name">{{item.goods_name}}</view>
+                    <view class="money">
+                        <view class="priceAfter">券后价￥{{item.final_price}}</view>
+                        <view class="priceBefore">原价￥{{item.old_price}}</view>
+                    </view>
+                    <view class="other">
+                        <view class="sales">
+                            <view class="t">总销量</view>
+                            <view class="v">{{item.sold_quantity}}</view>
+                        </view>
+                        <button catch:tap="obstacle" class="com-btn-4 share" data-item="{{item}}" openType="share">
+                                                <view class="t">分享赚</view>
+                                                <view class="v">￥{{item.commission}}</view>
+                                            </button>
+                    </view>
+                </view>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from '../api/api.js'
+    import * as util from '../util/util.js'
+    import Nav from "../components/nav"
+    export default class Coupons extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+            navigationStyle: 'custom'
+        }
+        data = {
+            wxUser: null,
+            title: '',
+            goodsList: [],
+            page: 1,
+            has: true,
+            isLoading: false,
+            share: null
+        }
+        components = {
+            nav: Nav,
+        }
+        methods = {
+            goodsDetails(goods_id, event) {
+                wepy.navigateTo({
+                    url: "/pages/goodsdetail?goods_id=" + goods_id
+                })
+            },
+            obstacle(event) {
+                console.log('share content')
+            }
+        }
+        async getShare() {
+            let response = await api.getShare()
+            if (response.code === 200) {
+                this.share = response.data
+            }
+        }
+        onShareAppMessage(res) {
+            let share = {}
+            if (res.target) {
+                let item = res.target.dataset.item
+                let title = "[拼多多] 优惠券" + item.coupon_discount + '元' + ',原价￥' + item.old_price + " 券后价￥" + item.final_price
+                let path = "/pages/goodsdetail?goods_id=" + item.goods_id + '&pid=' + this.wxUser.uid
+                let img = item.goods_thumbnail_url
+                share = {
+                    title: title,
+                    imageUrl: img,
+                    path: path
+                }
+            } else {
+                let path = "/pages/index?pid=" + this.wxUser.uid
+                share = {
+                    title: this.share.title,
+                    path: path,
+                    imageUrl: this.share.image
+                }
+            }
+            console.log('coupons share', share)
+            return share
+        }
+        async loadData() {
+            if (this.isLoading === false && this.has === true) {
+                this.isLoading = true
+                wepy.showLoading()
+                let param = {
+                    goods_type: 2,
+                    page: this.page
+                }
+                let response = await api.getGoodsList(param)
+                if (response.code === 200) {
+                    if (response.data.lenght === 0) {
+                        this.has = false
+                    }
+                    for (let i of response.data) {
+                        this.goodsList.push(i)
+                    }
+                    this.page++
+                }
+                this.isLoading = false
+                wepy.hideLoading()
+                this.$apply()
+            }
+        }
+        async onLoad(options) {
+            let backpage = encodeURIComponent('/pages/coupons?' + util.serialize(options))
+            let res = await this.$parent.LoginCheck(backpage,1)
+            if (!res) {
+                return false
+            } else {
+                this.wxUser = res
+            }
+            this.$invoke('nav', 'init', {
+                title: options.title? decodeURIComponent(options.title) : "多多优惠券"
+            })
+
+            this.loadData()
+            this.getShare()
+        }
+        async onReachBottom() {
+            await this.loadData()
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    #couponCa {
+        padding: 120rpx 32rpx 0 32rpx;
+        overflow: hidden;
+        .pageTitle {
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 32rpx 60rpx 32rpx;
+            background-color: #fff;
+            overflow: hidden;
+        }
+        .list {
+            overflow: hidden;
+            .single {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding: 24rpx;
+                margin-bottom: 20rpx;
+                background-color: #f5f5f7;
+                border-radius: 4px;
+                overflow: hidden;
+            }
+            .left {
+                width: 270rpx;
+                margin-right: 24rpx;
+                overflow: hidden;
+                .couponBig {
+                    color: #fff;
+                    position: relative;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20rpx 0;
+                    text-align: center;
+                    background-color: #d84f49;
+                    border-radius: 4px;
+                    .t {
+                        width: 90rpx;
+                        height: 100rpx;
+                        line-height: 100rpx;
+                        font-size: 36rpx;
+                        border-right: 1px solid #fff;
+                        white-space: nowrap;
+                    }
+                    .v {
+                        flex: 1;
+                        font-size: 34rpx;
+                        height: 100rpx;
+                        line-height: 100rpx;
+                        white-space: nowrap;
+                        overflow: hidden;
+                    }
+                }
+                .couponBig::before {
+                    content: '';
+                    position: absolute;
+                    top: -4rpx;
+                    left: 86rpx;
+                    width: 10rpx;
+                    height: 10rpx;
+                    background-color: #fff;
+                    border-radius: 100%;
+                }
+                .couponBig::after {
+                    content: '';
+                    position: absolute;
+                    bottom: -4rpx;
+                    left: 86rpx;
+                    width: 10rpx;
+                    height: 10rpx;
+                    background-color: #fff;
+                    border-radius: 100%;
+                }
+                .progress {
+                    margin-top: 20rpx;
+                }
+                .group {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    font-size: 20rpx;
+                    margin-top: 10rpx;
+                    overflow: hidden;
+                }
+            }
+            .right {
+                flex: 1;
+                overflow: hidden;
+                button {
+                    margin: 0;
+                }
+                .name {
+                    font-size: 28rpx;
+                    height: 80rpx;
+                    line-height: 40rpx;
+                    overflow: hidden;
+                }
+                .money {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    line-height: 1;
+                    font-size: 22rpx;
+                    padding: 20rpx 0;
+                    overflow: hidden;
+                    .priceAfter {
+                        color: #d84f49;
+                    }
+                    .priceBefore {
+                        color: #999;
+                        text-decoration: line-through;
+                    }
+                }
+                .other {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding-top: 20rpx;
+                    border-top: 1px dotted #dbdbdb;
+                    overflow: hidden;
+                    .sales {
+                        overflow: hidden;
+                        .t {
+                            font-size: 20rpx;
+                            white-space: nowrap;
+                            overflow: hidden;
+                        }
+                        .v {
+                            font-size: 32rpx;
+                            font-weight: bold;
+                            white-space: nowrap;
+                            overflow: hidden;
+                        }
+                    }
+                    .share {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 60rpx;
+                        padding: 0 10rpx;
+                        overflow: hidden;
+                        .t {
+                            font-size: 20rpx;
+                        }
+                        .v {
+                            font-size: 32rpx;
+                        }
+                    }
+                }
+            }
+        }
+    }
+</style>

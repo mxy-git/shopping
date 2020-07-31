@@ -1,0 +1,214 @@
+<template>
+    <view class="content">
+        <view class="header">
+            确认收货15天后全额返现
+        </view>
+
+        <!-- start body -->
+        <scroll-view class="body" scroll-y bindscrolltolower="scrolltolower">
+            <block wx:for="{{items}}" wx:key="index">
+                <view class="item">
+                    <view class="item-header">
+                        <view class="item-header-left">
+                            <image src="{{item.goods_image}}" />   
+                        </view>
+                        <view class="item-header-right">
+                            <view class="title">{{item.goods_name}}</view>
+                            <view class="item-header-right-bottom">
+                                <view class="item-header-right-bottom-left">
+                                    <image src="{{item.avatarurl}}" />
+                                    <text>{{item.nickname}}</text>
+                                </view>
+                                <view class="item-header-right-bottom-right">
+                                    <text>{{item.order_create_time}}下单</text>
+                                </view>
+                            </view>
+                        </view>
+                    </view>
+                    <view class="item-body">
+                        <view class="item-body-left">
+                            <view class="order-price">订单金额 ¥{{item.order_price}}</view>
+                            <text class="reback">预计返现 ¥{{item.bargain_price}}</text>
+                        </view>
+                        <view class="item-body-right">
+                            <block wx:if="{{item.status === 2}}">待确认收货</block>
+                            <block wx:if="{{item.status === 3}}">待返现</block>
+                            <block wx:if="{{item.status === 4}}">已返现</block>
+                        </view>
+                    </view>
+                </view>
+            </block>
+        </scroll-view>
+
+        <!-- end scroll -->
+    </view>
+</template>
+
+<script>
+import wepy from "wepy";
+import * as api from "../api/api.js"
+export default class Bargainreback extends wepy.page {
+    config = {
+        navigationBarTitleText: '订单返现',
+        navigationBarTextStyle: 'black'
+    }
+   
+    data = {
+        wxUser:null,
+        page:1,
+        limit:10,
+        has:true,
+        isLoading:false,
+        items:[]
+    }
+
+    async onLoad(){
+        let backpage = encodeURIComponent("/pages/bargainreback")
+        let res = await this.$parent.LoginCheck(backpage, 1)
+        if (!res) {
+            return false
+        } else {
+            wx.hideShareMenu()
+            this.wxUser = res
+            this.getData()
+        }
+    }
+
+    async getData(){
+        if(this.has && !this.isLoading){
+            this.isLoading = true
+            wepy.showLoading({
+                title:'Loading...'
+            });
+
+            let param = {
+                page:this.page
+            }
+            let response = await api.getMyFanxianList(param)
+            if(response.code === 200){
+                // 获取数据
+                for(let i of response.data){
+                    this.items.push(i)
+                }
+                // 刷新数据
+                this.$apply()
+
+                // 判断用户
+                let length = response.data
+                if(length < this.limit){
+                    this.has = false
+                }
+                this.page++;
+            }else{
+                wepy.showToast({
+                    title:response.msg,
+                    icon:'none'
+                })
+            }
+
+            this.isLoading = false;
+            wepy.hideLoading();
+        }
+    }
+
+    methods = {
+        scrolltolower(){
+
+        }
+    }
+}
+</script>
+<style>
+    page{
+        height: 100%;
+        background: #f4f4f8;
+    }
+</style>
+
+<style lang="less">
+    .content{
+        .header{
+            height: 80rpx;
+            line-height: 80rpx;
+            background: #f4f4f8;
+            color: #848a99;
+            text-align: center;
+            font-size: 26rpx;
+        }
+        .body{
+            height: 100%;
+            .item{
+                margin-bottom: 20rpx;
+                box-sizing: border-box;
+                background: white;
+                padding: 20rpx;
+                color: #848a99;
+
+                .item-header{
+                    display: flex;
+                    flex-direction: row;
+                    border-bottom: 1px solid #eee;
+                    padding-bottom: 10rpx;
+
+                    .item-header-left{
+                        width: 210rpx;
+                        margin-right: 20rpx;
+                        image{
+                            width: 210rpx;
+                            height: 210rpx;
+                            border-radius: 10rpx;
+                            margin-right: 20rpx;
+                        }
+                    }
+
+                    .item-header-right{
+                        max-width: 500rpx;
+                        flex-grow: 1;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                        .title{
+                            color: #1c1c1e;
+                            font-size: 24rpx;
+                        }
+
+                        .item-header-right-bottom{
+                            display: flex;
+                            flex-direction: row;
+                            align-items: center;
+                            justify-content: space-between;
+                            margin-bottom: 10rpx;
+                            .item-header-right-bottom-left{
+                                display: flex;
+                                align-items: center;
+                                font-size: 26rpx;
+                                image{
+                                    width: 60rpx;
+                                    height: 60rpx;
+                                    border-radius: 50%;
+                                    margin-right: 10rpx;
+                                    border:1px solid #eee;
+                                }
+                            }
+                            .item-header-right-bottom-right{
+                                font-size: 24rpx;
+                            }
+                        }
+                    }
+                }
+
+                .item-body{
+                    margin-top: 20rpx;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    font-size: 26rpx;
+
+                    .order-price{
+                        font-size: 28rpx;
+                    }
+                }
+            }
+        }
+    }
+</style>

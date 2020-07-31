@@ -1,0 +1,266 @@
+
+
+<template>
+    <view id="schoolIndexCa">
+        <view class="pageTitle">拼客学堂</view>
+        <swiper autoplay circular indicatorDots class="bannerSwiper">
+            <swiper-item wx:for="{{bannerList}}" wx:key="index">
+                <navigator class="single" hoverClass="none" url="{{item.navigate_url}}">
+                    <image class="bannerImg" mode="aspectFill" src="{{item.banner_url}}" />
+                </navigator>
+            </swiper-item>
+        </swiper>
+        <view class="nav">
+            <navigator class="left" hoverClass="none" url="{{nav[0].path}}">
+                <image class="icon" mode="scaleToFill" src="{{nav[0].icon}}" />
+                <view class="name">{{nav[0].name}}</view>
+            </navigator>
+            <view class="right">
+                <navigator class="single" hoverClass="none" url="{{nav[1].path}}">
+                    <image class="icon" mode="scaleToFill" src="{{nav[1].icon}}" />
+                    <view class="name">{{nav[1].name}}</view>
+                </navigator>
+                <navigator class="single" hoverClass="none" url="{{nav[2].path}}">
+                    <image class="icon" mode="scaleToFill" src="{{nav[2].icon}}" />
+                    <view class="name">{{nav[2].name}}</view>
+                </navigator>
+                <navigator class="single" hoverClass="none" url="{{nav[3].path}}">
+                    <image class="icon" mode="scaleToFill" src="{{nav[3].icon}}" />
+                    <view class="name">{{nav[3].name}}</view>
+                </navigator>
+                <navigator class="single" hoverClass="none" url="{{nav[4].path}}">
+                    <image class="icon" mode="scaleToFill" src="{{nav[4].icon}}" />
+                    <view class="name">{{nav[4].name}}</view>
+                </navigator>
+            </view>
+        </view>
+        <view class="article">
+            <view class="title">
+                <image class="icon" wx:if="{{imgHost}}" mode="scaleToFill" src="{{imgHost}}/school/soul-icon.png" />
+                <view class="txt">大牛干货</view>
+            </view>
+            <view class="list">
+                <view @tap="articleDetail('{{item.id}}')" class="single" wx:for="{{list}}" wx:key="index">
+                    <view class="no">{{index+1}}</view>
+                    <view class="question">{{item.title}}</view>
+                </view>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from "../api/api.js"
+    import config from "../config.js";
+    export default class School extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+        }
+        data = {
+            bannerList: [],
+            nav: [],
+            list: [],
+            imgHost: config.imgHost
+        }
+        methods = {
+            articleDetail(id, event) {
+                wepy.navigateTo({
+                    url: '/pages/articledetail?id=' + id
+                })
+            }
+        }
+        async onLoad() {
+            let backpage = encodeURIComponent('/pages/school')
+            let res = await this.$parent.LoginCheck(backpage,1)
+            if(!res){
+                return false
+            }
+            wx.hideShareMenu()
+            this.loadBanner()
+            this.loadSchoolNav()
+            this.loadArticleList()
+        }
+
+        async loadBanner(){
+            let res = await api.SchooleBanner()
+            if (res.code === 200) {
+                this.bannerList = res.data
+                this.$apply()
+            }
+        }
+
+        async loadSchoolNav(){
+            let res = await api.SchoolNav()
+            if (res.code === 200) {
+                this.nav = res.data
+                this.$apply()
+            }
+        }
+
+        async loadArticleList(){
+            let param = {
+                type:2
+            }
+            let res = await api.apiArticleList(param)
+            if (res.code === 200) {
+                this.list = res.data
+                this.$apply()
+            }
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    #schoolIndexCa {
+        padding: 126rpx 32rpx 32rpx 32rpx;
+        overflow: hidden;
+        .pageTitle {
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 32rpx 60rpx 32rpx;
+            background-color: #fff;
+        }
+        .bannerSwiper {
+            height: 330rpx;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .single {
+            display: block;
+            width: 100%;
+            height: 100%;
+            .bannerImg {
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
+        }
+        .nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 20rpx;
+            margin-top: 40rpx;
+            background-color: #f5f5f7;
+            border-radius: 4px;
+            overflow: hidden;
+            .left {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                width: 185rpx;
+                height: 200rpx;
+                border-right: 1px solid #dbdbdb;
+                overflow: hidden;
+                .icon {
+                    width: 40rpx;
+                    height: 40rpx;
+                }
+                .name {
+                    line-height: 1;
+                    font-size: 28rpx;
+                    margin-top: 20rpx;
+                    white-space: nowrap;
+                    overflow: hidden;
+                }
+            }
+            .right {
+                flex: 1;
+                display: flex;
+                justify-content: flex-start;
+                align-items: center;
+                flex-wrap: wrap;
+                margin-left: 15rpx;
+                overflow: hidden;
+                .single {
+                    width: 50%;
+                    height: 100rpx;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    box-sizing: border-box;
+                    overflow: hidden;
+                    .icon {
+                        width: 40rpx;
+                        height: 40rpx;
+                        margin-right: 15rpx;
+                    }
+                    .name {
+                        font-size: 28rpx;
+                        white-space: nowrap;
+                        overflow: hidden;
+                    }
+                }
+                .single:nth-child(1) {
+                    border-bottom: 1px solid #dbdbdb;
+                    border-right: 1px solid #dbdbdb;
+                }
+                .single:nth-child(2) {
+                    border-bottom: 1px solid #dbdbdb;
+                }
+                .single:nth-child(3) {
+                    border-right: 1px solid #dbdbdb;
+                }
+            }
+        }
+        .article {
+            margin-top: 40rpx;
+            background-color: #f5f5f7;
+            overflow: hidden;
+            .title {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-top: 40rpx;
+                overflow: hidden;
+                .icon {
+                    width: 38rpx;
+                    height: 38rpx;
+                    margin-right: 15rpx;
+                }
+                .txt {
+                    color: #cfaa71;
+                    font-size: 36rpx;
+                    font-weight: bold;
+                }
+            }
+            .list {
+                padding: 0 10rpx 0 0;
+                overflow: hidden;
+                .single {
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: center;
+                    height: 110rpx;
+                    overflow: hidden;
+                    .no {
+                        color: #cfaa71;
+                        width: 80rpx;
+                        font-size: 26rpx;
+                        text-align: center;
+                        font-style: oblique;
+                    }
+                    .question {
+                        flex: 1;
+                        height: 100%;
+                        line-height: 110rpx;
+                        font-size: 28rpx;
+                        box-sizing: border-box;
+                        border-bottom: 1px solid #dbdbdb;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        overflow: hidden;
+                    }
+                }
+                .single:last-child .question {
+                    border-bottom: none;
+                }
+            }
+        }
+    }
+</style>

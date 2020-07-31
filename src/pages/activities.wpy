@@ -1,0 +1,304 @@
+<template>
+    <view id="thematicActivitiesCa" style="padding-top:{{$nav$nav_margin_top + $nav$nav_height}}px">
+        <nav></nav>
+        <view class="goodsList" style="background:#f4f3f8;">
+            <goodslist></goodslist>
+        </view>
+        <gotop></gotop>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from '../api/api.js'
+    import * as util from '../util/util.js'
+    import Nav from "../components/nav"
+    import GoodsList from "../components/goodslist"
+    import Gotop from "../components/gotop"
+    export default class Activities extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+            navigationStyle: 'custom'
+        }
+        data = {
+            wxUser: null,
+            share: null,
+            activitiesName: '',
+            activitiesType: '',
+            goodsList: [],
+            page: 1,
+            has: true,
+            isLoading: false,
+            gotop_status:false
+        }
+        components = {
+            nav : Nav,
+            goodslist: GoodsList,
+            gotop:Gotop
+        }
+        async loadData() {
+            console.log('loaddata')
+            if (this.isLoading === false && this.has) {
+                this.isLoading = true
+                this.$apply()
+                wepy.showLoading()
+                let data = {}
+                switch (this.activitiesType) {
+                    case '1':
+                        console.log('高佣金')
+                        data = await api.getGoodsList({
+                            page: this.page,
+                            goods_type:3
+                        })
+                        break
+                    case '2':
+                        //brand Clearance 品牌清仓
+                        console.log('品牌清仓')
+                        data = await api.apiGoodsRecommend({
+                            page: this.page,
+                            channel_type: 2
+                        })
+                        break
+                    case '3':
+                        // 9.9
+                        console.log(9.9)
+                        data = await api.apiGoodsRecommend({
+                            page: this.page,
+                            channel_type: 0,
+                        })
+                        break
+                    case '4':
+                        // 爆款
+                        console.log('爆款')
+                        data = await api.apiGoodsRecommend({
+                            page: this.page,
+                            channel_type: 1,
+                        })
+                        break
+                    case '5':
+                        // 暖心
+                        console.log('暖心')
+                        data = await api.getGoodsList({
+                            page: this.page,
+                            goods_type: 4,
+                        })
+                        break
+                    case '6':
+                        // 必团 品牌好货
+                        console.log('必团,品牌好货')
+                        data = await api.getGoodsList({
+                            page: this.page,
+                            goods_type: 5,
+                        })
+                        break
+                    case "7":
+                        console.log('为你推荐')
+                        data = await api.getRecommend({
+                            page: this.page,
+                        })
+                        break;
+                    default:
+                        console.log('default')
+                }
+                wepy.hideLoading()
+                if (data.code === 200) {
+                    // for (let i of data.data) {
+                    //     this.goodsList.push(i)
+                    // }
+                    this.$invoke('goodslist','add',data.data)
+                    if (data.data.length === 0) {
+                        this.has = false;
+                    }
+                    this.page = this.page + 1
+                    this.isLoading = false
+                    this.$apply()
+                }
+            } else {
+                return true;
+            }
+            this.$apply()
+        }
+        async onLoad(options) {
+            let backpage = encodeURIComponent('/pages/activities?'+util.serialize(options))
+            let res = await this.$parent.LoginCheck(backpage,1)
+            if(!res){
+                return false
+            }else{
+                this.wxUser = res
+            }
+            this.$invoke('nav','init',{
+                title: decodeURIComponent(options.activitiesName)
+            })
+            this.$invoke('goodslist','init',{
+                role:this.wxUser.role,
+                width: 360
+            })
+            this.activitiesType = options.activitiesType
+            this.loadData()
+            this.getShare()
+        }
+        async onReachBottom() {
+            console.log('reach')
+            await this.loadData()
+        }
+
+        onPageScroll(e){
+            if(e.scrollTop > 1500){
+                if(this.gotop_status == false){
+                    this.gotop_status = true
+                    this.$invoke('gotop','show')
+                }
+            }else{
+                if(this.gotop_status == true){
+                    this.gotop_status = false
+                    this.$invoke('gotop','hide')
+                }
+            }
+        }
+
+        async getShare() {
+            let response = await api.getShare()
+            if (response.code === 200) {
+                this.share = response.data
+                this.$apply()
+            }
+        }
+        // 页面分享
+        onShareAppMessage(res) {
+            let share = {}
+            if (res.target) {
+                let item = res.target.dataset.item
+                let title = "[拼多多] 优惠券" + item.coupon_discount + '元' + ',原价￥' + item.old_price + " 券后价￥" + item.final_price
+                let path = "/pages/goodsdetail?goods_id=" + item.goods_id + '&pid=' + this.wxUser.uid
+                let img = item.goods_thumbnail_url
+                share = {
+                    title: title,
+                    imageUrl: img,
+                    path: path
+                }
+            } else {
+                let path = "/pages/index?pid=" + this.wxUser.uid
+                share = {
+                    title: this.share.title,
+                    path: path,
+                    imageUrl: this.share.image
+                }
+            }
+            console.log('rank page share content', share)
+            return share
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    #thematicActivitiesCa {
+        overflow: hidden;
+        .pageTitle {
+            position: fixed;
+            z-index: 2;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 32rpx 60rpx 32rpx;
+            background-color: #fff;
+            overflow: hidden;
+        }
+        .goodsList {
+            overflow: hidden;
+            .list {
+                background: #f4f3f8;
+                overflow: hidden;
+                .item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20rpx 30rpx;
+                    margin-bottom: 24rpx;
+                    background-color: #f5f5f7;
+                    border-radius: 4px;
+                    overflow: hidden;
+                }
+                .img {
+                    width: 220rpx;
+                    height: 250rpx;
+                    margin-right: 30rpx;
+                }
+                .group {
+                    flex: 1;
+                    overflow: hidden;
+                    .name {
+                        color: #000;
+                        font-size: 28rpx;
+                        height: 80rpx;
+                        line-height: 40rpx;
+                        white-space: normal;
+                        overflow: hidden;
+                    }
+                    .coupon {
+                        display: inline-block;
+                    }
+                    .stats {
+                        color: #999;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        font-size: 22rpx;
+                        padding: 10rpx 0;
+                        border-bottom: 1px dotted #dbdbdb;
+                        overflow: hidden;
+                        .originalPrice {
+                            text-decoration: line-through;
+                        }
+                    }
+                    .operating {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin: 0;
+                        margin-top: 20rpx;
+                        overflow: hidden;
+                        button {
+                            margin: 0;
+                        }
+                        .price {
+                            color: #d84f49;
+                            .t {
+                                font-size: 20rpx;
+                            }
+                            .v {
+                                font-size: 32rpx;
+                                font-weight: bold;
+                            }
+                        }
+                        .share {
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            width: content;
+                            height: 60rpx;
+                            line-height: 60rpx;
+                            padding: 0 10rpx;
+                            overflow: hidden;
+                            .t {
+                                font-size: 20rpx;
+                            }
+                            .v {
+                                font-size: 32rpx;
+                            }
+                        }
+                        .buy {
+                            width: content;
+                            height: 60rpx;
+                            line-height: 60rpx;
+                            padding: 0 20rpx;
+                            text-align: center;
+                            overflow: hidden;
+                            font-size: 24rpx;
+                            padding: 0 30rpx;
+                        }
+                    }
+                }
+            }
+        }
+    }
+</style>

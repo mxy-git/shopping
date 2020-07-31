@@ -1,0 +1,299 @@
+<template>
+    <view id="storeDailyIndexCa">
+        <view class="pageTitle">每日好店</view>
+        <view class="list">
+            <view @tap="mallDetails('{{item.mall_id}}')" class="item" wx:for="{{mall_list}}" wx:key="index">
+                <view class="header">
+                    <image class="logo" mode="aspectFill" src="{{item.mall_logo}}" />
+                    <view class="info">
+                        <view class="top">
+                            <view class="name">
+                                <view class="nameV">{{item.mall_name}}</view>
+                                <view class="level">{{item.mall_type}}</view>
+                                <view class="type">{{item.mall_cate}}</view>
+                            </view>
+                            <view class="discount">
+                                <view class="v">{{item.discount}}</view>
+                                <view class="t">券</view>
+                            </view>
+                        </view>
+                        <view class="bottom">
+                            <view class="sell">
+                                <view class="t">近30天销量:</view>
+                                <view class="v">{{item.sold_quantity}}</view>
+                            </view>
+                            <view class="proportion">
+                                <view class="t">店铺佣金比率:</view>
+                                <view class="v">{{item.mall_rate}}</view>
+                            </view>
+                        </view>
+                    </view>
+                </view>
+                <view class="article">
+                    <view class="goods" wx:for="{{item.goods_list}}" wx:key="{{index}}">
+                        <image class="img" mode="scaleToFill" src="{{item.goods_image}}" />
+                        <view class="price">￥{{item.final_price}}</view>
+                    </view>
+                </view>
+                <view class="footer">
+                    <view class="score">
+                        <view class="t">描述相符</view>
+                        <view class="v">{{item.avg_desc}}</view>
+                    </view>
+                    <view class="score">
+                        <view class="t">服务态度</view>
+                        <view class="v">{{item.avg_serv}}</view>
+                    </view>
+                    <view class="score">
+                        <view class="t">物流服务</view>
+                        <view class="v">{{item.avg_lgst}}</view>
+                    </view>
+                </view>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from "../api/api.js";
+    export default class Shoplist extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+        }
+        data = {
+            mall_list: [],
+            page: 1,
+            has: true,
+            isLoading: false
+        }
+        methods = {
+            mallDetails(mall_id, event) {
+                wepy.navigateTo({
+                    url: '/pages/shop?mall_id=' + mall_id
+                });
+            }
+        }
+        async loadData() {
+            if (this.isLoading === false && this.has === true) {
+                wepy.showLoading()
+                this.isLoading = true;
+                let params = {
+                    page: this.page
+                }
+                let res = await api.apiShopList(params);
+                console.log(res)
+                if (res.code === 200) {
+                    if (res.data.lenght === 0) {
+                        this.has = false
+                    }
+                    for (let i of res.data) {
+                        this.mall_list.push(i)
+                    }
+                    this.page = this.page + 1
+                }
+                this.isLoading = false
+                wepy.hideLoading()
+                this.$apply()
+            }
+        }
+        async onReachBottom() {
+            await this.loadData()
+        }
+        async onLoad() {
+            await this.loadData()
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    #storeDailyIndexCa {
+        padding: 122rpx 32rpx 0 32rpx;
+        overflow: hidden;
+        .pageTitle {
+            position: fixed;
+            z-index: 2;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 32rpx 60rpx 32rpx;
+            background-color: #fff;
+            overflow: hidden;
+        }
+        .list {
+            overflow: hidden;
+            .item {
+                padding: 30rpx;
+                background-color: #f5f5f7;
+                border-radius: 4px;
+                margin-bottom: 20rpx;
+                overflow: hidden;
+                .header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    overflow: hidden;
+                    .logo {
+                        width: 80rpx;
+                        height: 80rpx;
+                        border-radius: 4px;
+                        margin-right: 24rpx;
+                    }
+                    .info {
+                        flex: 1;
+                        overflow: hidden;
+                        .top {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            overflow: hidden;
+                            .name {
+                                flex: 1;
+                                display: flex;
+                                justify-content: flex-start;
+                                align-items: center;
+                                overflow: hidden;
+                                .nameV {
+                                    font-size: 28rpx;
+                                    max-width: 200rpx;
+                                    white-space: nowrap;
+                                    text-overflow: ellipsis;
+                                    overflow: hidden;
+                                }
+                                .level {
+                                    color: #fff;
+                                    font-size: 22rpx;
+                                    height: 30rpx;
+                                    line-height: 30rpx;
+                                    padding: 0 10rpx;
+                                    margin: 0 10rpx;
+                                    background-color: #d84f49;
+                                    border-radius: 4px;
+                                    white-space: nowrap;
+                                    overflow: hidden;
+                                }
+                                .type {
+                                    color: #fff;
+                                    font-size: 22rpx;
+                                    height: 30rpx;
+                                    line-height: 30rpx;
+                                    padding: 0 10rpx;
+                                    margin: 0 10rpx;
+                                    background-color: #2f323b;
+                                    border-radius: 4px;
+                                    white-space: nowrap;
+                                    overflow: hidden;
+                                }
+                            }
+                            .discount {
+                                color: #fff;
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+                                font-size: 22rpx;
+                                background-color: #cfaa71;
+                                border-radius: 4px;
+                                border: solid 1px #cfaa71;
+                                overflow: hidden;
+                                .t {
+                                    color: #cfaa71;
+                                    height: 40rpx;
+                                    line-height: 40rpx;
+                                    padding: 0 10rpx;
+                                    background-color: #fff;
+                                }
+                                .v {
+                                    height: 40rpx;
+                                    line-height: 40rpx;
+                                    padding: 0 10rpx;
+                                }
+                            }
+                        }
+                        .bottom {
+                            color: #999;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            line-height: 1;
+                            font-size: 24rpx;
+                            margin-top: 15rpx;
+                            overflow: hidden;
+                            .sell {
+                                display: flex;
+                                justify-content: flex-start;
+                                align-items: center;
+                                overflow: hidden;
+                            }
+                            .proportion {
+                                display: flex;
+                                justify-content: flex-start;
+                                align-items: center;
+                                overflow: hidden;
+                                .v {
+                                    color: #d84f49;
+                                }
+                            }
+                        }
+                    }
+                }
+                .article {
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: flex-start;
+                    margin: 34rpx 0;
+                    overflow: hidden;
+                    .goods {
+                        position: relative;
+                        flex: 1;
+                        height: 200rpx;
+                        margin-right: 20rpx;
+                        border-radius: 4px;
+                        overflow: hidden;
+                        .img {
+                            width: 100%;
+                            height: 100%;
+                        }
+                        .price {
+                            position: absolute;
+                            z-index: 1;
+                            bottom: 0;
+                            right: 0;
+                            height: 33rpx;
+                            line-height: 33rpx;
+                            font-size: 24rpx;
+                            padding: 0 10rpx;
+                            background-color: #fb4f41;
+                            border-top-left-radius: 20rpx;
+                            color: white;
+                        }
+                    }
+                    .goods:last-child {
+                        margin-right: 0;
+                    }
+                }
+                .footer {
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: center;
+                    line-height: 1;
+                    overflow: hidden;
+                    .score {
+                        display: flex;
+                        justify-content: flex-start;
+                        align-items: center;
+                        font-size: 24rpx;
+                        margin-right: 30rpx;
+                        overflow: hidden;
+                        .t {
+                            color: #999;
+                            margin-right: 10rpx;
+                        }
+                        .v {
+                            color: #d84f49;
+                        }
+                    }
+                }
+            }
+        }
+    }
+</style>

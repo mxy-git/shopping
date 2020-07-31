@@ -1,0 +1,65 @@
+<template>
+    <view class="content" style="padding-top:{{$nav$nav_margin_top + $nav$nav_height}}px;">
+        <nav></nav>
+        <luckad :ad_img.sync="ad_image" :type.sync="ad_type" :path.sync="ad_path"></luckad>
+        <userlist></userlist>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import Nav from "../components/nav"
+    import Luckad from "../components/luck/luckad"
+    import Userlist from "../components/luck/userlist"
+    import * as api from "../api/api.js"
+    import * as util from "../util/util.js"
+    export default class Luckuserlist extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+            navigationStyle: 'custom'
+        }
+        components = {
+            nav: Nav,
+            luckad: Luckad,
+            userlist: Userlist
+        }
+        data = {
+            id: null,
+            ad_image: 'https://pddke.oss-cn-hangzhou.aliyuncs.com/img/luck-ad.png',
+            ad_type: '10',
+            ad_path: '/pages/index'
+        }
+        async onRoute() {
+        }
+        async onLoad(options) {
+            let backpage = encodeURIComponent("/pages/luckuserlist?"+ util.serialize(options))
+            let res = await this.$parent.LoginCheck(backpage,1)
+            if(!res){
+                return false
+            }
+            this.id = options.id
+            this.$apply()
+            this.getRedirect()
+            this.init()
+        }
+        async getRedirect() {
+            let response = await api.adredirect()
+            if (response.code === 200) {
+                this.ad_image = response.data.image
+                this.ad_path = response.data.path
+                this.ad_type = response.data.type
+                this.$apply()
+            }
+        }
+        init() {
+            this.$invoke('nav', "init", {
+                title: '抽奖参与用户'
+            });
+            this.$invoke('userlist','init')
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+
+</style>

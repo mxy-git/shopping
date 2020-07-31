@@ -1,0 +1,635 @@
+<template>
+    <view id="mineCa">
+        <block>
+            <!-- vip -->
+            <view class="stats" wx:if="{{wxUser.role!=0}}">
+                <view class="topBox">
+                    <view class="userInfo">
+                        <image class="avatar" mode="scaleToFill" src="{{wxUser.avatarurl}}" />
+                        <view class="txt">
+                            <view class="top">
+                                <view class="name">{{wxUser.nickname}}</view>
+                                <image class="level" mode="aspectFit" src="{{config.ossImg}}/level-1.png" wx:if="{{wxUser.role==1}}" />
+                                <image class="level" mode="aspectFit" src="{{config.ossImg}}/level-2.png" wx:if="{{wxUser.role==2}}" />
+                            </view>
+                            <view class="bottom">
+                                <view class="number">账号：{{wxUser.uid}}</view>
+                                <view @tap="copyMcode" class="copy">复制</view>
+                                <!-- <view class="cash-desc" @tap.stop='showCashDesc'><text>提现说明</text></view> -->
+                            </view>
+                        </view>
+                    </view>
+                    <navigator class="setting" hoverClass="none" url="/pages/setting">
+                        <view class="icon icon-setting"></view>
+                    </navigator>
+                </view>
+                <navigator class="middleBox" hoverClass="none" url="/pages/profit">
+                    <view class="item">
+                        <view class="v">￥{{profit.month_total_money?profit.month_total_money:'0.00'}}</view>
+                        <view class="t">本月预估</view>
+                    </view>
+                    <view class="item">
+                        <view class="v">￥{{profit.today_total_money?profit.today_total_money:'0.00'}}</view>
+                        <view class="t">今日收益</view>
+                    </view>
+                    <view class="item">
+                        <view class="v">{{profit.total_order_count?profit.total_order_count:'0.00'}}</view>
+                        <view class="t">总订单数</view>
+                    </view>
+                </navigator>
+                <view class="bottomBox">
+                    <view class="balance">
+                        <view class="t">可提现余额：</view>
+                        <view class="v">{{profit.can_withdrawal?profit.can_withdrawal:'0.00'}}</view>
+                        <text class="cash-desc" @tap.stop='showCashDesc'>提现说明</text>
+                    </view>
+                    <view class="cash-action">
+                        <button @tap="withdrawal" class="com-btn-2 withdraw">提现</button>
+                    </view>
+                </view>
+            </view>
+            <!-- 非 vip -->
+            <view class="statsVisitor" wx:else>
+                <image class="avatar" mode="scaleToFill" src="{{wxUser.avatarurl}}" />
+                <view class="txt">
+                    <view class="name">{{wxUser.nickname}}</view>
+                    <view class="no">账号：{{wxUser.uid}}</view>
+                </view>
+                <navigator class="setting" hoverClass="none" url="/pages/setting">
+                    <view class="icon icon-setting"></view>
+                </navigator>
+            </view>
+        </block>
+        <!-- 快捷菜单 -->
+        <view class="navQuick" wx:if="{{wxUser.role == 2 && vipNav.length>0}}">
+            <view class="type">会员服务</view>
+            <view class="list">
+                <block wx:for="{{vipNav}}" wx:key="index">
+                    <button class="single contact" openType="contact" sessionFrom="{{user}}" wx:if="{{item.name=='联系客服'}}" send-message-title="专属客服" send-message-img="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/quick_send.png" show-message-card="true" send-message-path="/pages/custom/custom_392946996">
+                            <image class="icon" mode="scaleToFill" src="{{item.icon}}" />
+                            <view class="name">{{item.name}}</view>
+                        </button>
+                    <navigator class="single" hoverClass="none" url="{{item.path}}" wx:else>
+                        <image class="icon" mode="scaleToFill" src="{{item.icon}}" />
+                        <view class="name">{{item.name}}</view>
+                    </navigator>
+                </block>
+            </view>
+        </view>
+        <!-- 所用用户通用功能,我的菜单 -->
+        <view class="navQuick" wx:if="{{nav.length>0}}">
+            <view class="type"  wx:if="{{wxUser.role==2}}">会员服务</view>
+            <view class="type"  wx:else>我的功能</view>
+            <view class="list">
+                <block wx:for="{{nav}}" wx:key="index">
+                    <button class="single contact" openType="contact" sessionFrom="{{sessionForm}}" wx:if="{{item.name=='联系客服' || item.name=='专属客服'}}" send-message-title="专属客服" send-message-img="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/quick_send.png" show-message-card="true"
+                        send-message-path="/pages/custom/custom_392946996">
+                                <image class="icon" mode="scaleToFill" src="{{item.icon}}" />
+                                <view class="name">{{item.name}}</view>
+                        </button>
+                    <navigator class="single" hoverClass="none" url="{{item.path}}" wx:else>
+                        <image class="icon" mode="scaleToFill" src="{{item.icon}}" />
+                        <view class="name">{{item.name}}</view>
+                    </navigator>
+                </block>
+            </view>
+        </view>
+        <!-- 普通用户据用的商品列表 -->
+        <!-- <view class="like" wx:if="{{wxUser.role==0 && $goodslist$goods.length>0}}">
+            <view class="title">猜你喜欢</view>
+            <view class="list">
+                <goodslist></goodslist>
+            </view>
+        </view> -->
+        <!-- view end -->
+        <view class="cash-desc-box" wx:if="{{showCashDesc}}">
+            <view class="mask" @tap.stop="domask">
+                <view class="title">提现说明</view>
+                <view class="body">
+                    <view>● 确认收货后15天内无退货或售后失败,订单状态变为审核成功</view>
+                    <view>● 每月20日之前审核成功的订单,25日可提现</view>
+                    <view>● 每月20日之后审核成功的订单,次月25日可提现</view>
+                    <view style="color:#fb5a86;">● 提醒:这里的审核指拼多多官方审核</view>
+                </view>
+                <view class="bottom" @tap.stop="configCashDesc">确定</view>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from "../api/api.js";
+    import config from "../config.js"
+    import Goodslist from "../components/goodslist"
+    export default class Me extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+            enablePullDownRefresh: true,
+        }
+        components = {
+            goodslist: Goodslist
+        }
+        data = {
+            wxUser: null,
+            sessionForm: '',
+            share: null,
+            config: config,
+            profit: null,
+            nav:[],
+            page: 1,
+            has: true,
+            isLoading: false,
+            showCashDesc: false
+        }
+        methods = {
+            // 复制用户的uid
+            async copyMcode(event) {
+                let res = await wepy.setClipboardData({
+                    data: this.wxUser.uid.toString()
+                }).catch((err) => {
+                    return err
+                })
+                if (res.errMsg !== "setClipboardData:ok") {
+                    console.log(res.errMsg)
+                    wepy.showToast({
+                        title: '复制失败',
+                        icon: 'none'
+                    })
+                }
+                return
+            },
+            // 跳转提现页面
+            withdrawal() {
+                wepy.navigateTo({
+                    url: '/pages/withdrawal'
+                })
+                return
+            },
+            // 展示提现说明
+            showCashDesc() {
+                this.showCashDesc = true
+                this.$apply()
+            },
+            configCashDesc() {
+                this.showCashDesc = false
+                this.$apply()
+            },
+            domask() {
+                return false
+            }
+        }
+        // 加载导航菜单
+        async loadButton() {
+            let nav = await api.getUserNavButton({
+                role: this.wxUser.role
+            })
+            if (nav.code === 200) {
+                this.nav = nav.data.nav
+                this.$apply()
+            } else {
+                console.log('加载个人中心导航失败')
+            }
+        }
+        // 加载商品数据
+        async loadData(reload) {
+            if (this.has === true && this.isLoading === false) {
+                this.isLoading = true
+                wepy.showLoading()
+                let params = {
+                    goods_type: 1,
+                    page: this.page
+                }
+                let response = await api.getGoodsList(params)
+                if (response.code === 200) {
+                    if (response.data.length === 0) {
+                        this.has = false;
+                    }
+                    if (reload) {
+                        this.$invoke('goodslist', "clear", response.data)
+                    } else {
+                        this.$invoke('goodslist', "add", response.data)
+                    }
+                    this.page++
+                }
+                this.isLoading = false
+                wepy.hideLoading()
+            }
+        }
+        // 到达底部触发加载更多的数据
+        onReachBottom() {
+            if (this.wxUser.role === 0) {
+                this.loadData(false)
+            }
+        }
+        // 进入页面加载数据
+        async onLoad() {
+            let backpage = encodeURIComponent("/pages/me")
+            let res = await this.$parent.LoginCheck(backpage, 2)
+            if (!res) {
+                return false
+            } else {
+                this.wxUser = res
+            }
+            this.sessionForm = JSON.stringify({
+                nickName: this.wxUser.nickname,
+                avatarUrl: this.wxUser.avatarurl,
+                source: '用户中心'
+            })
+            this.loadButton()
+            // 加载商品列表
+            if (this.wxUser.role === 0) {
+                this.$invoke('goodslist', 'init', {
+                    role: this.wxUser.role,
+                    width:330
+                })
+                this.loadData(false)
+            } else {
+                this.getProfit()
+            }
+            this.getShare()
+        }
+        // 下拉加载
+        async onPullDownRefresh() {
+            wepy.showLoading()
+            this.wxUser = wepy.getStorageSync('userinfo')
+            this.loadButton()
+            // 加载商品列表
+            if (this.wxUser.role === 0) {
+                // this.loadData(true)
+            } else {
+                this.getProfit()
+            }
+            wepy.stopPullDownRefresh()
+            wepy.hideLoading()
+        }
+        // 获取默认分享的数据
+        async getShare() {
+            let response = await api.getShare()
+            if (response.code === 200) {
+                this.share = response.data
+            }
+        }
+        // 获取用户的简单收益
+        async getProfit() {
+            let response = await api.getProfitSample()
+            if (response.code === 200) {
+                this.profit = response.data
+                this.$apply()
+            }
+        }
+        // 页面分享
+        onShareAppMessage(res) {
+            let share = {}
+            if (res.target) {} else {
+                let path = "/pages/index?pid="+this.wxUser.uid
+                if (this.wxUser.role != 0) {
+                    path = path + "?pid=" + this.wxUser.uid
+                }
+                share = {
+                    title: this.share.title,
+                    path: path,
+                    imageUrl: this.share.image
+                }
+            }
+            console.log('rank page share content', share)
+            return share
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    // .cash-desc {
+    //     flex-grow: 1;
+    //     font-size: 25rpx;
+    //     text-align: right;
+    //     margin-left: 10rpx;
+    //     text {
+    //         display: inline-block;
+    //         padding: 10rpx 20rpx;
+    //         background: #d84f49;
+    //         border-radius: 10rpx;
+    //         margin-right: 18rpx;
+    //     }
+    // }
+    .cash-desc-box {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 999;
+        transition: all 3000ms linear 3000ms;
+        letter-spacing: 3rpx;
+        .mask {
+            position: fixed;
+            width: 76%;
+            height: auto;
+            top: 50%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-50%);
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-radius: 10rpx;
+            box-sizing: border-box;
+            font-size: 28rpx;
+            .title {
+                text-align: center;
+                padding: 30rpx;
+                font-weight: bold;
+            }
+            .body {
+                padding: 0rpx 40rpx;
+                word-break: break-all;
+                white-space: pre-line;
+                color: #5d5d5d;
+                view {
+                    margin-bottom: 10rpx;
+                }
+            }
+            .bottom {
+                box-sizing: border-box;
+                width: 100%;
+                padding: 30rpx;
+                text-align: center;
+                color: #61c63c;
+                font-weight: 500;
+                margin-top: 20rpx;
+            }
+        }
+    }
+    #mineCa {
+        padding: 0rpx 32rpx 10rpx 32rpx;
+        overflow: hidden;
+        .stats {
+            color: #fff;
+            margin-top: 20rpx;
+            padding: 36rpx 25rpx 25rpx 25rpx;
+            background: #2f323b;
+            background-size: auto 218rpx;
+            border-radius: 20rpx;
+            box-shadow: 0 15rpx 30rpx #8d8d8d;
+            overflow: hidden;
+            .topBox {
+                position: relative;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                overflow: hidden;
+                .userInfo {
+                    width: 100%;
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: center;
+                    overflow: hidden;
+                    .avatar {
+                        width: 114rpx;
+                        height: 114rpx;
+                        border-radius: 100%;
+                        margin-right: 35rpx;
+                    }
+                    .txt {
+                        flex: 1;
+                        overflow: hidden;
+                        .top {
+                            display: flex;
+                            justify-content: flex-start;
+                            align-items: center;
+                            overflow: hidden;
+                            .name {
+                                font-size: 36rpx;
+                                margin-right: 25rpx;
+                                white-space: nowrap;
+                                text-overflow: ellipsis;
+                                overflow: hidden;
+                            }
+                            .level {
+                                width: 125rpx;
+                                height: 34rpx;
+                            }
+                        }
+                        .bottom {
+                            display: flex;
+                            justify-content: flex-start;
+                            align-items: center;
+                            margin-top: 10rpx;
+                            overflow: hidden;
+                            width: 100%;
+                            .number {
+                                font-size: 22rpx;
+                                margin-right: 25rpx;
+                                white-space: nowrap;
+                                text-overflow: ellipsis;
+                                overflow: hidden;
+                            }
+                            .copy {
+                                font-size: 18rpx;
+                                width: 64rpx;
+                                height: 26rpx;
+                                line-height: 26rpx;
+                                text-align: center;
+                                font-size: 18rpx;
+                                border: 1px solid #fff;
+                                border-radius: 26rpx;
+                            }
+                        }
+                    }
+                }
+                .setting {
+                    position: absolute;
+                    right: 0;
+                    top: 0;
+                    font-size: 40rpx;
+                    overflow: hidden;
+                    .icon {
+                        font-size: 40rpx;
+                    }
+                }
+            }
+            .middleBox {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 40rpx;
+                overflow: hidden;
+                .item {
+                    flex: 1;
+                    text-align: center;
+                    border-right: 1px solid #97999d;
+                    overflow: hidden;
+                    .v {
+                        color: #cfaa71;
+                        font-size: 36rpx;
+                        font-weight: bold;
+                        white-space: nowrap;
+                        overflow: hidden;
+                    }
+                    .t {
+                        font-size: 24rpx;
+                        white-space: nowrap;
+                        overflow: hidden;
+                    }
+                }
+                .item:last-child {
+                    border-right: none;
+                }
+            }
+            .bottomBox {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding-top: 25rpx;
+                margin-top: 25rpx;
+                border-top: 1px solid #97999d;
+                overflow: hidden;
+                .balance {
+                    flex: 1;
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: center;
+                    margin-right: 30px;
+                    overflow: hidden;
+                    .t {
+                        font-size: 24rpx;
+                    }
+                    .v {
+                        color: #cfaa71;
+                        font-size: 36rpx;
+                        font-weight: bold;
+                    }
+                    .cash-desc {
+                        display: inline-block;
+                        font-size: 24rpx;
+                        color: white;
+                        box-shadow: 0 1px;
+                        margin-left: 10rpx;
+                    }
+                }
+                .cash-action {
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: space-between;
+                    align-items: center;
+                    .withdraw {
+                        width: 160rpx;
+                        height: 60rpx;
+                        line-height: 60rpx;
+                        text-align: center;
+                        border-radius: 10rpx;
+                        font-size: 25rpx;
+                    }
+                }
+            }
+        }
+        .statsVisitor {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #fff;
+            margin-top: 20rpx;
+            padding: 36rpx 25rpx 25rpx 25rpx;
+            background: #2f323b;
+            background-size: auto 218rpx;
+            border-radius: 20rpx;
+            box-shadow: 0 15rpx 30rpx #8d8d8d;
+            overflow: hidden;
+            .avatar {
+                width: 114rpx;
+                height: 114rpx;
+                border-radius: 100%;
+                margin-right: 35rpx;
+            }
+            .txt {
+                flex: 1;
+                line-height: 1;
+                overflow: hidden;
+                .name {
+                    font-size: 36rpx;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                    overflow: hidden;
+                }
+                .no {
+                    font-size: 22rpx;
+                    margin-top: 20rpx;
+                }
+            }
+            .setting {
+                position: absolute;
+                top: 0;
+                right: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 80rpx;
+                height: 80rpx;
+                font-size: 40rpx;
+                overflow: hidden;
+                .icon {
+                    font-size: 40rpx;
+                }
+            }
+        }
+        .navQuick {
+            margin-top: 40rpx;
+            overflow: hidden;
+            .type {
+                color: #000;
+                font-size: 36rpx;
+                font-weight: bold;
+            }
+            button {
+                margin: 0;
+            }
+            button::after {
+                border: 0;
+            }
+            .list {
+                display: flex;
+                justify-content: flex-start;
+                align-items: flex-start;
+                flex-wrap: wrap;
+                overflow: hidden;
+                .single {
+                    width: 25%;
+                    line-height: 1;
+                    text-align: center;
+                    margin-top: 40rpx;
+                    box-sizing: border-box;
+                    background: none;
+                    overflow: hidden;
+                    .icon {
+                        width: 50rpx;
+                        height: 50rpx;
+                    }
+                    .name {
+                        color: #000;
+                        font-size: 24rpx;
+                        margin-top: 20rpx;
+                    }
+                }
+            }
+        }
+        .navQuick:nth-child(3) {
+            margin-top: 60rpx;
+        }
+        .like {
+            margin-top: 40rpx;
+            overflow: hidden;
+            .title {
+                color: #000;
+                font-size: 36rpx;
+                font-weight: bold;
+            }
+            .list {
+                margin-top: 20rpx;
+                white-space: nowrap;
+                overflow: hidden;
+                background: #f4f3f8;
+            }
+        }
+    }
+</style>

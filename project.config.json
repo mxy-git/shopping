@@ -1,0 +1,91 @@
+{
+	"description": "duoduoke src",
+	"setting": {
+		"urlCheck": true,
+		"es6": false,
+		"postcss": false,
+		"minified": false,
+		"newFeature": true
+	},
+	"compileType": "miniprogram",
+	"appid": "wx4c5be752eac43c28",
+	"projectname": "%E6%AF%8F%E6%97%A5%E6%8A%98%E4%B8%8A%E6%8A%98",
+	"miniprogramRoot": "dist/",
+	"simulatorType": "wechat",
+	"simulatorPluginLibVersion": {},
+	"condition": {
+		"search": {
+			"current": -1,
+			"list": []
+		},
+		"conversation": {
+			"current": -1,
+			"list": []
+		},
+		"plugin": {
+			"current": -1,
+			"list": []
+		},
+		"game": {
+			"list": []
+		},
+		"gamePlugin": {
+			"current": -1,
+			"list": []
+		},
+		"miniprogram": {
+			"current": 0,
+			"list": [
+				{
+					"id": -1,
+					"name": "抽奖列表",
+					"pathName": "pages/lucklist",
+					"query": "",
+					"scene": null
+				},
+				{
+					"id": 1,
+					"name": "pages/goodsdetail",
+					"pathName": "pages/goodsdetail",
+					"query": "goods_id=3296422085",
+					"scene": null
+				},
+				{
+					"id": -1,
+					"name": "pages/shareinvite",
+					"pathName": "pages/shareinvite",
+					"query": "",
+					"scene": null
+				},
+				{
+					"id": -1,
+					"name": "pages/discover",
+					"pathName": "pages/discover",
+					"query": "",
+					"scene": null
+				},
+				{
+					"id": -1,
+					"name": "pages/collection",
+					"pathName": "pages/collection",
+					"query": "",
+					"scene": null
+				},
+				{
+					"id": -1,
+					"name": "pages/rank",
+					"pathName": "pages/rank",
+					"query": "",
+					"scene": null
+				},
+				{
+					"id": -1,
+					"name": "pages/me",
+					"pathName": "pages/me",
+					"query": "",
+					"scene": null
+				}
+			]
+		}
+	}
+}

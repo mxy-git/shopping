@@ -1,0 +1,79 @@
+<style scoped lang='less'>
+    .modal-top-view{
+        width: 100%;
+        position: fixed;
+        background: rgba(0, 0, 0, 0.3);
+        left: 0;
+        top: 0;
+        height: 100%;
+    }
+
+    .modal-view{
+        position: fixed;
+        top:50%;
+        left:50%;
+        transform: translateX(-50%) translateY(-50%);
+        width: 480rpx;
+        background: white;
+        border: 1px solid #eee;
+        border-radius: 10rpx;
+        padding: 40rpx;
+        z-index:99999;
+        opacity: 1;
+        .model-view-title{
+            font-size: 38rpx;
+            margin-bottom: 40rpx;
+            color: #666;
+            text-align: left;
+            padding-bottom: 10rpx;
+        }
+        .model-view-content{
+            color:#666;
+            font-size: 28rpx;
+        }
+        .model-bottom{
+            margin-top: 50rpx;
+            text-align: right;
+            .model-confirm{
+                color: #2daebf;
+                font-size: 30rpx;
+            }
+        }
+    }
+</style>
+
+<template lang="wxml">
+    <view class="modal-top-view" wx:if="{{isShow}}">
+        <view class="modal-view" >
+            <view class="model-view-title">{{title}}</view>
+            <view class="model-view-content">{{content}}</view>
+            <view class="model-bottom">
+                <text @tap.stop="confirm" class="model-confirm">确定</text>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+export default class Modal extends wepy.component {
+    data = {
+        isShow:false,
+        title: '',
+        content:''
+    }
+    methods = {
+        confirm(){
+            this.isShow = false
+            this.$apply()
+        },
+        showModal(res){
+            this.title = res.title
+            this.content = res.content
+            this.$apply()
+            this.isShow = true
+            this.$apply()
+        }
+    }
+}
+</script>

@@ -1,0 +1,159 @@
+<template>
+    <view class="content" style="padding-top:{{$nav$nav_margin_top + $nav$nav_height}}px">
+        <nav></nav>
+        <pageloading wx:if="{{!ready}}"></pageloading>
+        <lucklisttitle></lucklisttitle>
+        <view class="body">
+            <repeat for="{{luckList}}" key="index" index="index" item="item">
+                <lucklistitem :item="item"></lucklistitem>
+            </repeat>
+        </view>
+        <view class="nomore">没有更多了</view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from '../api/api.js'
+    import Nav from "../components/nav"
+    import Lucklisttitle from "../components/luck/lucklisttitle"
+    import Lucklistitem from "../components/luck/lucklistitem"
+    import Pageloading from "../components/common/pageloading"
+    export default class Lucklist extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+            navigationBarTextStyle: 'black',
+            navigationStyle: 'custom',
+            enablePullDownRefresh: true,
+        }
+        data = {
+            luckList: [],
+            page: 1,
+            has: true,
+            isLoading: false,
+            limit: 10,
+            ready: false,
+            share: null
+        }
+        components = {
+            nav: Nav,
+            lucklisttitle: Lucklisttitle,
+            lucklistitem: Lucklistitem,
+            pageloading: Pageloading
+        }
+        onReachBottom(){
+            this.getLuckList()
+        }
+        onReady() {
+            this.ready = true;
+            this.$apply()
+        }
+        async onLoad() {
+            let backpage = encodeURIComponent("/pages/lucklist")
+            let res = await this.$parent.LoginCheck(backpage,1)
+            if(!res){
+                return false
+            }
+            this.$invoke('nav', 'init', {
+                title: '抽奖',
+                color: 'black',
+            })
+            this.getLuckList()
+            this.$apply()
+
+            setTimeout(() => {
+                this.getShare()
+            }, 500);
+        }
+        async onPullDownRefresh() {
+            this.page = 1
+            this.has = true
+            this.isLoading = false
+            this.luckList = []
+            await this.getLuckList()
+            wepy.stopPullDownRefresh()
+        }
+        async getLuckList() {
+            if (this.has === true && this.isLoading === false) {
+                this.isLoading = true
+                let param = {
+                    page:this.page
+                }
+                let response = await api.luckList(param)
+                if (response.code === 200) {
+                    for (let i of response.data) {
+                        this.luckList.push(i)
+                    }
+                    this.$apply()
+                    this.page++
+                    let length = response.data.length
+                    if (length == 0 || length < this.limit) {
+                        this.has = false
+                    }
+                }
+                this.isLoading = false
+            }
+        }
+        async getShare() {
+            let param = {
+                type: 3
+            }
+            let share = await api.getShare(param)
+            if (share.code === 200) {
+                this.share = share.data
+            }
+        }
+        onShareAppMessage(res) {
+            console.log('share', res)
+            let wxUser = wepy.getStorageSync('userinfo');
+            let share = {}
+            let title = ''
+            let path = ''
+            let image = ''
+            if (res.target && res.target.id) {
+                path = '/pages/luck?pid=' + wxUser.uid + "&id=" + res.target.dataset.item.id
+                image = res.target.dataset.item.share_image
+                title = "好友邀您参与抽奖,奖品" + res.target.dataset.item.goods_name
+            } else {
+                path = '/pages/lucklist?pid=' + wxUser.uid
+                image = this.share.image
+                title = this.share.title
+            }
+            share = {
+                title: title,
+                path: path,
+                imageUrl: image
+            }
+            console.log(share)
+            return share
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    image {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        height: auto;
+    }
+    .content {
+        background: #f0f0f0;
+        overflow: scroll;
+        box-sizing: border-box;
+        min-height: 100vh;
+        width: 100%;
+        -webkit-overflow-scrolling: touch;
+        .body {
+            padding: 20rpx;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .nomore {
+            font-size: 26rpx;
+            color: #636363;
+            text-align: center;
+            margin-bottom: 20rpx;
+        }
+    }
+</style>

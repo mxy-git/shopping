@@ -1,0 +1,44 @@
+<template>
+    <view class="nodata-box" hidden="{{!status}}">
+        <image class="nodata-icon" src="../assets/nodata.png" />
+    </view>
+</template>
+
+<script>
+import wepy from "wepy";
+export default class Nodata extends wepy.component {
+    data = {
+        status:false
+    }
+    methods = {
+        show(){
+            this.status = true
+            this.$apply()
+        },
+        hide(){
+            this.status = false
+            this.$apply()
+        }
+    }
+}
+</script>
+
+<style lang="less" scoped>
+    .nodata-box{
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 100%;
+        width: 100%;
+        .nodata-icon{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-50%);
+            width: 250rpx;
+            height: 250rpx;
+        }
+    }
+</style>

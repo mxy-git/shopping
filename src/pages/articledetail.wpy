@@ -1,0 +1,81 @@
+<style lang="less" scoped>
+    @import '../wxParse/wxParse.wxss';
+    .content {
+        padding: 0rpx 0 160rpx 0;
+        overflow: hidden;
+        .wxParse-img {
+            display: flex;
+        }
+        .header {
+            padding: 0 32rpx;
+            overflow: hidden;
+            .title {
+                flex: 1;
+                color: #000;
+                font-size: 36rpx;
+                overflow: hidden;
+            }
+            .time {
+                color: #999;
+                font-size: 24rpx;
+                margin-top: 20rpx;
+            }
+        }
+        .content {
+            color: #14191f;
+            font-size: 26rpx;
+            line-height: 1.5;
+            padding: 32rpx;
+        }
+        .wxParse-img {
+            margin: 0 auto;
+            width: 100%;
+            min-height: 200rpx;
+            display: block;
+            background-color: transparent;
+        }
+    }
+</style>
+
+<template>
+    <view class="content">
+        <view class="header">
+            <view class="title">{{title}}</view>
+            <view class="time">{{time}}</view>
+        </view>
+        <import src="../wxParse/wxParse.wxml" />
+        <view class="content">
+            <template is="wxParse" data="{{wxParseData:content.nodes}}">
+</template>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import WxParse from '../wxParse/wxParse.js'
+    import * as api from '../api/api.js'
+    export default class Articledetail extends wepy.page {
+        config = {
+            navigationBarTitleText: ''
+        }
+        data = {
+            title: '',
+            time: ''
+        }
+        async onLoad(option) {
+            let data = {
+                id: option.id
+            }
+            wepy.showLoading()
+            let res = await api.apiMessageDetail(data)
+            if (res.code === 200) {
+                this.title = res.data.title
+                this.time = res.data.addtime
+                await WxParse.wxParse('content', 'html', res.data.content, this, 5)
+                this.$apply()
+                wepy.hideLoading()
+            }
+        }
+    }
+</script>

@@ -1,0 +1,110 @@
+
+
+<template>
+	<view class="content">
+		<view class="header">
+			<view class="title">{{title}}</view>
+			<view class="time">{{time}}</view>
+		</view>
+		<import src="../wxParse/wxParse.wxml" />
+		<view class="content">
+			<template is="wxParse" data="{{wxParseData:content.nodes}}">
+</template>
+        </view>
+    </view>
+</template>
+
+
+<script>
+	import wepy from 'wepy'
+	import * as api from '../api/api.js'
+	import WxParse from '../wxParse/wxParse.js'
+	export default class Messagedetail extends wepy.page {
+		config = {
+			navigationBarTitleText: ''
+		}
+		data = {
+			title: '',
+			time: '',
+			type: ''
+		}
+		async onLoad(option) {
+			//   await this.$parent.login()
+			let data = {
+				id: option.id
+			}
+			this.type = option.type
+			this.$apply()
+			wepy.showLoading()
+			let res = await api.massageDetail(data)
+			if (res.code === 200) {
+				wepy.hideLoading()
+				if (res.data.length === 0) {
+					wx.showModal({
+						title: '提示',
+						content: '文章不存在',
+						success(res) {
+							wx.navigateBack({
+								delta: 1
+							})
+						}
+					})
+					return false
+				} else {
+					/**
+					 * WxParse.wxParse(bindName , type, data, target,imagePadding)
+					 * 1.bindName绑定的数据名(必填)
+					 * 2.type可以为html或者md(必填)
+					 * 3.data为传入的具体数据(必填)
+					 * 4.target为Page对象,一般为this(必填)
+					 * 5.imagePadding为当图片自适应是左右的单一padding(默认为0,可选)
+					 */
+					this.title = res.data.title
+					this.time = res.data.addtime
+					var that = this
+					WxParse.wxParse('content', 'html', res.data.content, that, 5)
+					this.$apply()
+				}
+			}
+		}
+	}
+</script>
+
+<style lang="less" scoped>
+	@import '../wxParse/wxParse.wxss';
+	.content {
+		padding: 0rpx 0 160rpx 0;
+		overflow: hidden;
+		.wxParse-img {
+			display: flex;
+		}
+		.header {
+			padding: 0 32rpx;
+			overflow: hidden;
+			.title {
+				flex: 1;
+				color: #000;
+				font-size: 36rpx;
+				overflow: hidden;
+			}
+			.time {
+				color: #999;
+				font-size: 24rpx;
+				margin-top: 20rpx;
+			}
+		}
+		.content {
+			color: #14191f;
+			font-size: 26rpx;
+			line-height: 1.5;
+			padding: 32rpx;
+		}
+		.wxParse-img {
+			margin: 0 auto;
+			width: 100%;
+			min-height: 200rpx;
+			display: block;
+			background-color: transparent;
+		}
+	}
+</style>

@@ -1,0 +1,124 @@
+<style scoped lang='less'>
+    .notice-view {
+        position: fixed;
+        left: 0;
+        top: 0;
+        background: rgba(0, 0, 0, 0.8);
+        height: 100%;
+        width: 100%;
+        z-index: 100;
+        .notice-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translateX(-50%) translateY(-50%);
+            width: 540rpx;
+            background: white;
+            border-radius: 20rpx;
+            .content-box {
+                width: 100%;
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                .title {
+                    text-align: center;
+                    color: #cfaa71;
+                    margin-top: -80rpx;
+                    font-size: 30rpx;
+                    margin-bottom: 20rpx;
+                }
+                .text {
+                    color: #666;
+                    margin: 0 40rpx;
+                    font-size: 26rpx;
+                    text-align: center;
+                }
+            }
+            image {
+                width: 100%;
+                margin-top: -25%;
+            }
+            .icon-close {
+                position: absolute;
+                right: 20rpx;
+                top: 20rpx;
+                color: #aaa;
+                font-size: 54rpx;
+            }
+            button {
+                margin: 20rpx auto;
+                margin-bottom: 50rpx;
+                margin-top: 60rpx;
+                width: 80%;
+                border-radius: 50rpx;
+            }
+        }
+    }
+</style>
+
+<template lang="wxml">
+    <view class="notice-view" wx:if="{{isShow}}">
+        <view class='notice-content'>
+            <view class="content-box">
+                <image src='https://pddke.oss-cn-hangzhou.aliyuncs.com/img/notice-bg.png' mode="aspectFit" />
+                <view @tap.stop="close" class="icon icon-close"></view>
+                <view class="title">{{title}}</view>
+                <view class="text">{{content}}</view>
+                <button @tap="showDetail" class="com-btn-2  submit">立即查看</button>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    export default class Notice extends wepy.component {
+        data = {
+            isShow: false,
+            title: '',
+            content: '',
+            type: 1,
+            path: ''
+        }
+        methods = {
+            // 跳转详情页面
+            showDetail() {
+                this.isShow = false
+                this.$apply()
+                switch (this.type) {
+                    case 1:
+                        // h5
+                        wepy.navigateTo({
+                            url:'/pages/webview?webUrl=' + this.path
+                        })
+                        break;
+                    case 2:
+                        wepy.navigateTo({
+                            url: this.path
+                        })
+                    default:
+                        console.log('notice do nothing')
+                }
+            },
+
+            // 现实公告
+            showNotice(res) {
+                this.title = res.title
+                this.content = res.content
+                this.path = res.path
+                this.type = res.type
+                this.$apply()
+                this.isShow = true
+                this.$apply()
+            },
+
+            // 关闭
+            close() {
+                this.isShow = false
+            }
+        }
+    }
+</script>

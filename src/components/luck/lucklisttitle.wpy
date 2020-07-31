@@ -1,0 +1,102 @@
+<template>
+    <view class="components-luck-list-title">
+        <div class="content-header">
+            <view class="title">福利抽奖</view>
+            <view class="right">
+                <view class="kefu"><button open-type="contact" session-from="{{sessionFrom}}" send-message-title="专属客服" send-message-img="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/quick_send.png" show-message-card="true" send-message-path="/pages/custom/custom_392946996">联系客服</button></view>
+                <view class="share"><button open-type="share">分享</button></view>
+            </view>
+        </div>
+    </view>
+</template>
+
+<script>
+    import wepy from "wepy"
+    export default class Lucklisttitle extends wepy.component {
+        data = {
+            sessionFrom: null
+        }
+        onLoad() {
+            this.init()
+        }
+        init() {
+            let wxUser = wepy.getStorageSync('userinfo')
+            setTimeout(() => {
+                this.sessionFrom = JSON.stringify({
+                    nickName: wxUser.nickname,
+                    avatarUrl: wxUser.avatarurl,
+                    source: '抽奖页面'
+                })
+                this.$apply()
+            }, 300);
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    .components-luck-list-title {
+        .content-header {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            margin: 20rpx 40rpx 0;
+            .title {
+                font-size: 36rpx;
+                color: #c5593f;
+                font-weight: bold;
+            }
+            .right {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 26rpx;
+                color: #515151;
+                .kefu::after {
+                    content: "|";
+                }
+                .kefu {
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    button {
+                        border: none;
+                        outline: none;
+                        font-size: 26rpx;
+                        color: #515151;
+                        background: #f0f0f0;
+                        display: inline-block;
+                        overflow: auto;
+                    }
+                    button::before {
+                        border: none;
+                    }
+                    button::after {
+                        border: none;
+                    }
+                }
+                .share {
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    button {
+                        border: none;
+                        outline: none;
+                        font-size: 26rpx;
+                        color: #515151;
+                        background: #f0f0f0;
+                        display: inline-block;
+                        overflow: auto;
+                    }
+                    button::before {
+                        border: none;
+                    }
+                    button::after {
+                        border: none;
+                    }
+                }
+            }
+        }
+    }
+</style>

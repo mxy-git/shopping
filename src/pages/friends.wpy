@@ -1,0 +1,565 @@
+<template>
+    <view class="content">
+        <view class="header">
+            <view class="header-search">
+                <view class="search-input">
+                    <view class="icon icon-search"></view>
+                    <input type="text" placeholder="请输入关键字" bindinput='searchInput' value="{{search}}" bindconfirm="searching" />
+                    <view class="icon icon-close" wx:if="{{search}}" @tap.stop="searchClear"></view>
+                </view>
+                <view class="btn" @tap.stop='searching'>搜索</view>
+            </view>
+            <view class="intimate">
+                <view class="item sun {{choice==1?'active':''}}" @tap.stop="choiceAction(1)">
+                    <view class="icon icon-sun"></view>
+                </view>
+                <view class="item moon {{choice==2?'active':''}}" @tap.stop="choiceAction(2)">
+                    <view class="icon icon-moon"></view>
+                </view>
+                <view class="item star-1 {{choice==3?'active':''}}" @tap.stop="choiceAction(3)">
+                    <view class="icon icon-star-1"></view>
+                </view>
+                <!-- <view class="item star-2 {{choice==4?'active':''}}" @tap.stop="choiceAction(4)">
+                    <view class="icon icon-star"></view>
+                </view> -->
+            </view>
+        </view>
+        <view class="body">
+            <block wx:for="{{friends}}" wx:key="index">
+                <view class="friends-item">
+                    <view class="friends-item-body">
+                        <view class="item-header">
+                            <image lazy-load="true" src="{{item.avatarurl}}"  />
+                            <view class="item-info">
+                                <view class="item-name">
+                                    <view class="name">
+                                        <text style="margin-right:10rpx;color:#979797;">[ID:{{item.id}}]</text>
+                                        <text class="name-text">{{item.nickname}}</text>
+                                    </view>
+                                </view>
+                                <view class="item-time">注册日期: <text style="margin-left:15rpx;">{{item.addtime}}</text></view>
+                            </view>
+                        </view>
+                        <view class="item-body">
+                            <view class="number" wx:if="{{item.role == 1}}">({{item.count}})</view>
+                            <view class="des" wx:if="{{item.role == 1}}">单</view>
+                        </view>
+                    </view>
+                    
+                    <view class="friend-right">
+                        <block wx:if="{{item.wxhao}}">
+                            <view class="getWechat" @tap.stop="copyWxhao('{{item.wxhao}}')">
+                                <text class="icon icon-wechat"></text>
+                            </view>
+                        </block>
+                        <view class="friends-item-footer">
+                            <view>
+                                <text style="color:#979797;margin-right:5rpx;">亲密度</text>
+                                <text class="icon icon-sun" style="color:#cbab84;" wx:if="{{item.type == 1}}"></text>
+                                <text class="icon icon-moon" style="color:#cbab84;" wx:elif="{{item.type == 2}}"></text>
+                                <text class="icon icon-star-1" style="color:#cbab84;" wx:elif="{{item.type == 3}}"></text>
+                            </view>
+                            <view class="name-id">{{item.type != 1? item.order_count:""}}(单)</view>
+                        
+                            <block>
+                                <view></view>
+                            </block>
+                        </view>
+                    </view>
+                </view>
+            </block>
+        </view>
+        <view class="setting-contact">
+            <view class="do-setting" style="background:{{showModal?'#666':'#cfaa71'}}" @tap.stop='setting'>
+                <block wx:if="{{wxhao}}">修改联系方式</block>
+                <block wx:else>设置联系方式</block>
+            </view>
+        </view>
+        <view class="setting-modal" wx:if="{{showModal}}">
+            <view class="modal-content">
+                <view class="icon icon-close" @tap.stop="settingClose"></view>
+                <view class="modal-body">
+                    <view class="modal-item">
+                        <view class="modal-item-title">微信号</view>
+                        <input type="text" bindinput="bindWxhao" value="{{wxhao}}" />
+                    </view>
+                    <!-- <view class="modal-item">
+                        <view>手机号</view>
+                        <input type="text" bindinput="bindPhone" value="{{phone}}" />
+                    </view> -->
+                    <view class="modal-item">
+                        <view class="tips">填写联系信息后,你的好友可以联系你哦</view>
+                    </view>
+                </view>
+                <view class="modal-footer" @tap.stop='submit'>
+                    提交
+                </view>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from '../api/api.js'
+    import Nomore from '../components/nomore'
+    var limit = 15
+    export default class Friends extends wepy.page {
+        config = {
+            navigationBarTitleText: ''
+        }
+        data = {
+            total_friends: 0,
+            friends: [],
+            search: '',
+            page: 1,
+            has: true,
+            loading: false,
+            showModal: false,
+            wxhao: '',
+            // phone: ''
+            choice: 0
+        }
+        components = {
+            nomore: Nomore
+        }
+        async onLoad() {
+            let backpage = encodeURIComponent('/pages/friends')
+            let res = await this.$parent.LoginCheck(backpage,1)
+            if(!res){
+                return false
+            }
+            wx.hideShareMenu()
+            this.getFriendsCount()
+            this.getFirends()
+            this.getMyConnect()
+        }
+        onHide(){
+           wx.setNavigationBarTitle({
+                title: ' '
+            }) 
+        }
+        onReachBottom() {
+            this.getFirends()
+        }
+        methods = {
+            searchInput(event) {
+                this.search = event.detail.value
+                this.$apply()
+            },
+            searchClear() {
+                this.search = ''
+                this.$apply()
+                this.friends = []
+                this.getFirends()
+                this.has = true
+                this.loading = false
+                this.page = 1
+            },
+            searching() {
+                this.has = true
+                this.loading = false
+                this.page = 1
+                this.friends = []
+                this.getFirends()
+            },
+            copyWxhao(wxhao) {
+                if (wxhao) {
+                    wepy.setClipboardData({
+                        data: wxhao
+                    });
+                } else {
+                    wepy.showToast({
+                        title: '该好友未设置微信号',
+                        icon: 'none',
+                    }).catch((res) => {
+                        console.log(res.errMsg)
+                    });
+                }
+            },
+            callPhone(phone) {
+                if (phone) {
+                    wepy.makePhoneCall({
+                        phoneNumber: phone
+                    }).catch((res) => {
+                        console.log(res.errMsg)
+                    })
+                } else {
+                    wepy.showToast({
+                        title: '该好友未设置电话号码',
+                        icon: 'none',
+                    })
+                }
+            },
+            setting() {
+                this.showModal = true;
+                this.$apply()
+            },
+            settingClose() {
+                this.showModal = false;
+                this.$apply()
+            },
+            bindWxhao(e) {
+                this.wxhao = e.detail.value
+                console.log(this.wxhao)
+            },
+            // bindPhone(e) {
+            //     this.phone = e.detail.value
+            //     console.log(this.phone)
+            // },
+            submit() {
+                let param = {
+                    wxhao: this.wxhao,
+                    // phone: this.phone
+                }
+                api.setConnect(param).then((res) => {
+                    if (res.code === 200) {
+                        this.showModal = false
+                        this.$apply()
+                        wepy.showToast({
+                            title: '设置成功', //提示的内容,
+                            icon: 'success', //图标,
+                        });
+                    } else {
+                        wepy.showToast({
+                            title: res.msg, //提示的内容,
+                            icon: 'none', //图标,
+                        });
+                    }
+                }, (res) => {
+                    console.log(res)
+                })
+            },
+            choiceAction(index){
+                if(index != this.choice){
+                    this.choice = index
+                }else{
+                    this.choice = 0
+                }
+                this.$apply()
+            }
+        }
+        async getFirends(type) {
+            if (this.loading === false && this.has === true) {
+                this.loading = true
+                wepy.showLoading()
+                if(!type){
+                    type = this.choice
+                }
+                let param = {
+                    page: this.page,
+                    search: this.search || '',
+                    type: type
+                }
+                let response = await api.getFriendsList(param)
+                if (response.code === 200) {
+                    let dataLength = response.data.length
+                    if (dataLength === 0) {
+                        this.has = false
+                    }
+                    for (let i of response.data) {
+                        this.friends.push(i)
+                    }
+                    this.page++
+                } else {
+                    this.has = false
+                }
+                wepy.hideLoading()
+                this.loading = false
+                this.$apply()
+            }
+        }
+        async getFriendsCount() {
+            let response = await api.getFriendsCount()
+            if (response.code === 200) {
+                this.total_friends = response.data.count
+                wepy.setNavigationBarTitle({
+                    title: '好友人数(' + response.data.count + ')',
+                });
+            }
+        }
+        getMyConnect() {
+            api.getMyConnect().then((res) => {
+                if (res.code === 200) {
+                    this.wxhao = res.data.wxhao
+                    // this.phone = res.data.phone
+
+                    if(!this.wxhao){
+                        this.showModal = true
+                    }
+                    this.$apply()
+                }
+            }, (res) => {
+                console.log('reject', res)
+            })
+        }
+
+        watch = {
+            choice(news,old) {
+                console.log(old,news)
+                this.friends = [];
+                this.page = 1;
+                this.has = true
+                if(news == 0){
+                    this.getFirends(0)
+                }else{
+                    this.getFirends(news)
+                }
+            }
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    .success {
+        color: #00CC66 !important;
+    }
+    .content {
+        padding: 0 40rpx;
+        width: 100%;
+        padding-bottom: 60rpx;
+        box-sizing: border-box;
+        overflow: hidden;
+        .header {
+            width: 100%;
+            left: 0;
+            top: 0;
+            position: fixed;
+            background: white;
+            box-sizing: content-box;
+            .heder-top {
+                display: flex;
+                flex-direction: row;
+                align-items: baseline;
+                padding: 0 40rpx;
+                overflow: hidden;
+                .header-title {
+                    font-size: 54rpx;
+                }
+                .header-total {
+                    font-size: 40rpx;
+                    margin-left: 20rpx;
+                    color: #cfaa71;
+                }
+            }
+            .header-search {
+                box-sizing: border-box;
+                display: flex;
+                align-items: center;
+                margin-top: 20rpx;
+                color: #666;
+                margin-bottom: 20rpx;
+                padding: 0 40rpx;
+                .search-input {
+                    display: flex;
+                    align-items: center;
+                    border: 1px solid black;
+                    background: #f6f6f6;
+                    padding: 16rpx;
+                    flex-grow: 1;
+                    input {
+                        border-left: none;
+                        border: none;
+                        font-size: 28rpx;
+                        width: 100%;
+                    }
+                    .icon-search {
+                        padding-right: 10rpx;
+                    }
+                    .icon-close {
+                        padding: 5rpx 20rpx;
+                        font-size: 30rpx;
+                    }
+                }
+                .btn {
+                    background: black;
+                    color: white;
+                    margin-left: 20rpx;
+                    padding: 18rpx 24rpx;
+                }
+            }
+            .intimate{
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 40rpx;
+                .item{
+                    background: #eee;
+                    width: 30%;
+                    background: #eee;
+                    height: 50rpx;
+                    line-height: 50rpx;
+                    text-align: center;
+                    border-radius: 10rpx;
+                    color: #666;
+                }
+                .item.active{
+                    color: white;
+                    background: #cbab84;
+                }
+                margin-bottom: 10rpx;
+            }
+        }
+        .body {
+            margin-top: 195rpx;
+            margin-bottom: 60rpx;
+
+            .friends-item {
+                background: #f6f6f6;
+                padding: 10rpx 20rpx;
+                margin-bottom: 20rpx;
+                border-radius: 5rpx;
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+
+                
+
+                .friend-right{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    flex-direction: row;
+                    .getWechat{
+                        border-radius: 5rpx;
+                        color: #00CC66;
+                        .icon-wechat{
+                            font-size: 50rpx;
+                        }
+                        margin-right: 20rpx;
+                    }
+                }
+               
+                .friends-item-footer {
+                    height: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    font-size: 26rpx;
+                    box-sizing: border-box;
+                    text-align: center;
+                   
+                    .name-id{
+                        margin-top: 15rpx;
+                        color: #666;
+                        font-size: 22rpx;
+                        text-align: center;
+                    }
+                }
+                .item-header {
+                    display: flex;
+                    align-items: center;
+                    image {
+                        width: 60rpx;
+                        height: 60rpx;
+                        border-radius: 50%;
+                    }
+                    .item-info {
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                        margin-left: 20rpx;
+                        .item-name {
+                            display: flex;
+                            flex-direction: row;
+                            font-size: 26rpx;
+                            align-content: center;
+                            .name {
+                                font-weight: 500;
+                            }
+                        }
+                        .item-time {
+                            margin-top: 15rpx;
+                            color: #666;
+                            font-size: 22rpx;
+                        }
+                    }
+                }
+                .item-body {
+                    display: flex;
+                    align-items: center;
+                    .number {
+                        font-size: 30rpx;
+                        color: #cbab84;
+                        display: inline;
+                        margin-right: 5rpx;
+                    }
+                    .des {
+                        font-size: 30rpx;
+                        color: #666;
+                        display: inline;
+                    }
+                }
+            }
+        }
+        .setting-contact {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+            padding: 10rpx;
+            background: white;
+            border-top: 1rpx solid #f6f6f6;
+            color: white;
+            font-size: 30rpx;
+            .do-setting {
+                background: #cfaa71;
+                padding: 20rpx;
+            }
+        }
+        .setting-modal {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            .modal-content {
+                position: relative;
+                width: 76%;
+                height: 300rpx;
+                background: white;
+                padding: 40rpx;
+                border: 1px salmon #f6f6f6;
+                
+                .modal-item-title{
+                    font-size: 28rpx;
+                    color: #666;
+                }
+                .icon-close {
+                    position: absolute;
+                    right: 0rpx;
+                    top: 0rpx;
+                    padding: 20rpx;
+                }
+                .modal-body {
+                    font-size: 34rpx;
+                    margin-top: 20rpx;
+                    input {
+                        border: 1rpx solid #666;
+                        padding: 10rpx;
+                        margin: 20rpx 0;
+                    }
+                    .tips {
+                        color: #666;
+                        font-size: 26rpx;
+                    }
+                }
+                .modal-footer {
+                    text-align: center;
+                    background: #cfaa71;
+                    color: white;
+                    margin-top: 20rpx;
+                    padding: 16rpx 0;
+                }
+            }
+        }
+    }
+</style>

@@ -1,0 +1,343 @@
+<template>
+  <view>
+    <view class="body" wx:if="{{shopList.length > 0}}">
+        <view class="item" wx:for="{{shopList}}" wx:key="index" wx:for-item="item" >
+            <view class="item-header">
+                <view class="item-header-left">
+                    <image  src="{{item.mall_img}}" lazy-load="true" />
+                    <text>{{item.mall_name}}</text>
+                </view>
+                <view class="item-header-right">
+                    <text class="go-shop" @tap.stop="goShop('{{item.mall_id}}')">进店逛逛</text>
+                    <text class="cancle-collect" @tap.stop="cancleCollect('{{item.mall_id}}','{{index}}')">取消收藏</text>
+                </view>
+            </view>
+            <scroll-view class="item-body" scroll-x>
+                <view class="item-body-goodslist">
+                    <view class="goods" wx:for="{{item.goodslist}}" wx:key='index2' wx:for-item="goods" @tap.stop="goDetail('{{goods.goods_id}}')">
+                        <image lazy-load="true" src="{{goods.image}}"  />
+                        <view class="goods-name"><text>{{goods.name}}</text></view>
+                        <view class="goods-body">
+                            <view class="goods-body-left">
+                                <text class="quan">券</text>
+                                <text class="quan-price">{{goods.coupon > 0.00 ? "¥"+goods.coupon :'0'}}</text>
+                            </view>
+                            <view class="goods-body-rigth">销量{{goods.sales_tip}}件</view>
+                        </view>
+                        <view class="goods-footer">
+                            <view class="goods-footer-left">
+                                <text class="quan">券后¥</text>
+                                <text class="price">{{goods.price}}</text>
+                            </view>
+                            <view class="goods-footer-right" >
+                                <block wx:if="{{wxUser.role > 0}}">
+                                    <button @tap.stop='doNothing' data-item="{{goods}}" class="share" open-type='share'>赚{{goods.commission}}</button>
+                                </block>
+                                <block wx:else>
+                                    <button @tap.stop='goPDDApp' data-item="{{goods}}" class="buy">立即购买</button>
+                                </block>
+                            </view>
+                        </view>
+                    </view>
+                </view>
+            </scroll-view>
+        </view>
+    </view>
+
+    <view style="text-align:center;color:#666;font-size:30rpx;margin-top:200rpx;" wx:else>暂无数据</view>    
+  </view>  
+</template>
+
+<script>
+import wepy from "wepy";
+import * as api from "../api/api.js"
+import * as util from "../util/util.js"
+export default class Mallcollection extends wepy.page{
+    config = {
+        navigationBarTitleText: '我的店铺收藏'
+    }
+    data = {
+        wxUser:null,
+        page: 1,
+        has: true,
+        isLoading: false,
+        shopList:[]
+    }
+
+    async onLoad(options){
+        let backpage = encodeURIComponent('/pages/mallcollection?' + util.serialize(options))
+        let res = await this.$parent.LoginCheck(backpage, 1)
+        if(res){
+            this.wxUser = res
+        }else{
+            return false
+        }
+        this.getList()
+    }
+
+    async getList(){
+        if(this.isLoading == false && this.has){
+            this.isLoading = !this.isLoading
+            wepy.showLoading({
+                title:'loading...'
+            })
+            let param = {
+                page:this.page
+            }
+            let response = await api.collectionMallList(param)
+            if(response.code == 200){
+                if(response.data.length > 0){
+                    for(let i of response.data){
+                        this.shopList.push(i)
+                    }
+                    this.$apply()
+                }else{
+                    this.has = false
+                }
+                this.page++
+            }else{
+                console.log(response)
+            }
+            this.isLoading = false
+            wepy.hideLoading()
+        }
+    }
+    methods = {
+        goShop(mall_id,event){
+             wepy.navigateTo({
+                url: '/pages/shop?mall_id='+mall_id
+            })
+        },
+        goDetail(goods_id,event){
+             wepy.navigateTo({
+                url: '/pages/goodsdetail?goods_id='+goods_id
+            })
+        },
+        doNothing(){
+            return false;
+        },
+        async goPDDApp(event) {
+            let data = event.target.dataset.item
+            let param = {
+                goods_id: data.goods_id,
+                from:'mall_collection'
+            }
+            let response = await api.getPddWeAppInfo(param)
+            if (response.code === 200) {
+                wepy.navigateToMiniProgram({
+                    appId: response.data.appid,
+                    path: response.data.page_path,
+                    extraData: {
+                        pid: response.data.pid
+                    }
+                })
+            } else {
+                console.log('get pdd info faile')
+            }
+        },
+        async cancleCollect(mail_id,index) {
+            console.log(index)
+            let param = {
+                mall_id:mail_id
+            }
+            let collect_res = await api.collectionMallTigger(param)
+            if(collect_res){
+                wepy.showToast({
+                    title: '取消收藏成功',
+                })
+            }else{
+                console.log('获取收藏状态失败')
+            }
+            this.shopList.splice(index,1);
+            this.$apply()
+        }
+    }
+
+    // 分享
+    onShareAppMessage(res){
+      let share = {}
+      console.log(res)
+      if(res.target){
+        let item = res.target.dataset.item
+        share.title = "[拼多多] 优惠券" + item.coupon + '元' + ',原价￥' + item.old_price + " 券后价￥" + item.price
+        share.imageUrl = item.image
+        share.path = "/pages/goodsdetail?pid="+this.wxUser.id+'&goods_id='+item.goods_id
+      }else{
+        share = {
+          title:'邀您使用优惠券小程序,万能的券 省剁手的钱~',
+          path:'/pages/index?pid=' + this.wxUser.id,
+          imageUrl:'https://pddke.oss-cn-hangzhou.aliyuncs.com/img/share-default-1.png'
+        }
+      }
+      console.log(share)
+      return share
+    }
+    onReachBottom(){
+        this.getList()
+    }
+}
+</script>
+
+<style lang="less" scoped>
+    .body {
+    .item {
+      &:last-child {
+        border-bottom: 20rpx solid #f4f3fb;
+      }
+      border-top: 20rpx solid #f4f3fb;
+      border-left: 20rpx solid #f4f3fb;
+      border-right: 20rpx solid #f4f3fb;
+      display: flex;
+      flex-direction: column;
+      padding: 20rpx;
+      background: white;
+      .item-header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        .item-header-left {
+          display: flex;
+          flex-direction: row;
+		  align-items: center;
+		  font-size:26rpx;
+          image {
+            width: 60rpx;
+            height: 60rpx;
+            margin-right: 10rpx;
+            border-radius: 10rpx;
+          }
+        }
+        .go-shop {
+          font-size: 26rpx;
+          background: #2f323b;
+          color: white;
+          border-radius: 5rpx;
+          padding: 5rpx 10rpx;
+        }
+        .cancle-collect{
+            font-size: 26rpx;
+            background: #a8a8a8;
+            color: white;
+            border-radius: 5rpx;
+            padding: 5rpx 10rpx;
+            margin-left: 20rpx;
+        }
+      }
+
+      .item-body {
+        margin-top: 30rpx;
+        .item-body-goodslist {
+          display: flex;
+          .goods {
+            margin-right: 30rpx;
+			width: 300rpx;
+			min-width: 300rpx;
+            image {
+              width: 300rpx;
+              height: 300rpx;
+			}
+            .goods-name {
+			  width: 300rpx;
+			  color: #2c2829;
+              height: 80rpx;
+			  line-height: 40rpx;
+			  font-size: 24rpx;
+			  
+			  word-break: break-all;
+			  overflow:hidden;
+			  text-overflow: ellipsis;
+			  display: -webkit-box;  /*元素作为box伸缩盒子*/
+			  -webkit-line-clamp: 2;  /*设置文本行数限制*/
+			  -webkit-box-orient: vertical;  /*设置文本排列方式*/
+            }
+            .goods-body {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 24rpx;
+              margin-top: 10rpx;
+
+              .goods-body-left {
+                border-radius: 5rpx;
+                border: 1rpx solid #cfaa71;
+                .quan {
+                  background: #cfaa71;
+                  color: white;
+                  padding: 0 5rpx;
+                  letter-spacing: 3rpx;
+                }
+                .quan-price {
+                  font-size: 24rpx;
+                  padding: 0 10rpx;
+                  color: #cfaa71;
+                }
+			  }
+			  .goods-body-right{
+				color: #fff0e9;
+			  }
+            }
+            .goods-footer {
+              margin-top: 20rpx;
+              display: flex;
+              flex-direction: row;
+			  justify-content: space-between;
+			  align-items: center;
+              font-size: 30rpx;
+              overflow: hidden;
+
+              .goods-footer-left {
+                color: #ff3333;
+                font-size: 24rpx;
+                display: flex;
+                flex-direction: row;
+                align-content: center;
+                justify-content: flex-start;
+
+                .price {
+                  font-size: 26rpx;
+                  font-weight: bold;
+                  margin-left: 5rpx;
+                }
+              }
+
+              .goods-footer-right {
+                button {
+                  &::after {
+                    border-radius: 0;
+                  }
+                  background: linear-gradient(to right, #a936ff, #7d31ff);
+                  color: white;
+                  font-size: 24rpx;
+                  height: 45rpx;
+                  line-height: 45rpx;
+                  width: 140rpx;
+                  padding-left: 5rpx;
+                  padding-right: 0;
+                }
+                .share {
+                  border-top-left-radius: 120rpx;
+                  border-bottom-left-radius: 120rpx;
+                  margin-right: -10rpx;
+                  .zhuan {
+                    letter-spacing: 3rpx;
+                  }
+                  .zhuan-money {
+                    font-size: 26rpx;
+                    margin-left: 3rpx;
+                  }
+                }
+                .buy {
+                  margin-right: 0;
+                  display: inline-block;
+                  width: 140rpx;
+                  border-radius: 120rpx;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+</style>

@@ -1,0 +1,261 @@
+<template>
+	<view class="container">
+		<swiper class="swiper-box-1" indicator-dots="true" indicator-color="white" indicator-active-color="red" bindchange="swiperChange" easing-function="easeInOutCubic" circular="true" >
+			<block wx:for="{{imgUrls}}" wx:key="index">
+				<swiper-item>
+					<image src="{{item}}" class="slide-image" width="355" height="150" />
+				</swiper-item>
+			</block>
+
+			<swiper-item style="background: #2f323b;background-size: 750rpx 1338rpx, 750rpx 217rpx;">
+				<block wx:if="{{canIUse}}">
+					<image wx:if="{{imgHost}}" class="logo" src="{{config.ossImg}}/logo-0.png" />
+					<view class="text">
+						<text>自</text>
+						<text>购</text>
+						<text>省</text>
+						<text>钱</text>
+						<text>分</text>
+						<text>享</text>
+						<text>赚</text>
+						<text>钱</text>
+					</view>
+					<button bindgetuserinfo="login" class="login" openType="getUserInfo">
+						<view class="icon icon-weChat"></view>
+						<view class="txt">马上省钱</view>
+					</button>
+					<view class="tips2">登录后可购物，参加活动还可领优惠劵、现金等好礼</view>
+					<view class="agreement-view">
+						<navigator class="agreement" url="/pages/webview?webUrl={{config.api}}/system/privacy">每日必拼用户协议</navigator>
+					</view>
+					<mymodal></mymodal>
+				</block>
+				<block wx:else>
+					<view class="update">请升级微信版本</view>
+				</block>
+			</swiper-item>
+		</swiper>
+
+		<!-- 用户填写手机验证码 -->
+	</view>
+</template>
+
+<script>
+	import wepy from 'wepy'
+	import Config from '../config.js'
+	import * as api from '../api/api.js'
+	import * as util from '../util/util.js'
+	import Modal from "../components/modal"
+	export default class Login3 extends wepy.page {
+		config = {
+			backgroundTextStyle: 'light',
+			navigationBarTitleText: '',
+			navigationBarTextStyle: 'white',
+			// navigationStyle: 'custom'
+		}
+		data = {
+			imgHost: Config.imgHost,
+			config: Config,
+			backpage: '',
+			backtype: '',
+			canIUse: wx.canIUse('button.open-type.getUserInfo'),
+			imgUrls: [],
+			headerBg:"",
+		}
+		components = {
+			mymodal: Modal
+		}
+		async onLoad(options) {
+			let response = await api.login_launch()
+			if(response.data.status == 1){
+				this.imgUrls = [
+					'https://pddke.oss-cn-hangzhou.aliyuncs.com/intro/intro-1.jpg',
+					'https://pddke.oss-cn-hangzhou.aliyuncs.com/intro/intro-2.jpg',
+					'https://pddke.oss-cn-hangzhou.aliyuncs.com/intro/intro-3.jpg',
+					'https://pddke.oss-cn-hangzhou.aliyuncs.com/intro/intro-4.jpg',
+					'https://pddke.oss-cn-hangzhou.aliyuncs.com/intro/intro-5.jpg',
+				]
+				this.headerBg = "#f95357"
+				this.$apply()
+			} else{
+				this.headerBg = '#2f323b';
+				this.$apply();
+			}
+
+			this.backpage = options.backpage?decodeURIComponent(options.backpage):''
+			this.backtype = parseInt(options.backtype)
+		}
+		methods = {
+			swiperChange(event){
+				let srcLength = this.imgUrls.length
+				let current = event.detail.current
+				console.log(current)
+				if(current < srcLength){
+					if(this.headerBg != '#f95357'){
+						this.headerBg = "#f95357"
+						this.$apply()
+					}
+				}else{
+					this.headerBg = '#2f323b'
+					this.$apply()
+				}
+			},
+
+			async login() {
+				wepy.showLoading({
+					title: 'Loading...', //提示的内容,
+					mask: true, //显示透明蒙层，防止触摸穿透,
+					success: res => {}
+				});
+				// 获取授权的设置
+				let setting = await wepy.getSetting()
+				if (!setting.authSetting['scope.userInfo']) {
+					wepy.hideLoading()
+					let res = wx.getSystemInfoSync()
+					if (util.compareVersion(res.SDKVersion, '2.7.7') === -1) {
+						wx.showModal({
+							title: '提示',
+							content: '需要您授权 [使用用户信息] 的权限',
+							confirmText: '去授权',
+							confirmColor: '#f67f43',
+							cancelText: '放弃',
+							cancelColor: '#666',
+							success(res) {
+								console.log(res)
+								if(res.confirm){
+									wx.openSetting({
+									success (res) {
+										if (res.authSetting['scope.userInfo'] === true) {
+											console.log(true)
+										} else {
+												console.log(false)
+											}
+										}
+									})
+								}
+							}
+						})
+						// 低版本直接结束
+						return false;
+					} else {
+						let act = await wepy.showModal({
+							title: '提示',
+							content: '需要您授权 [使用用户信息]',
+							confirmText: '去授权',
+							confirmColor: '#f67f43',
+							cancelText: '放弃',
+							cancelColor: '#666'
+						})
+						if (act.confirm) {
+							let setting = await wepy.openSetting()
+							if (setting.authSetting['scope.userInfo'] !== true) {
+								return false
+							}else{
+								wepy.showLoading()
+							}
+						}else{
+							return false
+						}
+					}
+				}
+
+				// 执行登录逻辑
+				let loginInfo = await wepy.login()
+				if(loginInfo.errMsg !== 'login:ok'){
+					wepy.showToast({
+						title:'登录失败',
+						icon: 'none'
+					});
+					return false;
+				}
+
+				let userInfoRes = await wepy.getUserInfo({
+					withCredentials: true
+				}).catch((res) => {
+					return res;
+				})
+				console.log(userInfoRes)
+
+				if (userInfoRes.errMsg === 'getUserInfo:ok') {
+					if(!userInfoRes.encryptedData || !userInfoRes.iv){
+						wepy.showToast({
+							title:"授权失败",
+							icon:'none'
+						});
+						return false;
+					}
+					let data = {
+						code: loginInfo.code,
+						encryptedData: userInfoRes.encryptedData,
+						iv: userInfoRes.iv,
+						pid: this.$parent.globalData.pid || 0,
+						flag: this.$parent.globalData.flag || 0,
+						channel: this.$parent.globalData.channel || '',
+						path: "",
+						scene:''
+					}
+					if(this.$parent.globalData.scene){
+						data.scene = this.$parent.globalData.scene.scene || ''
+						data.path = this.$parent.globalData.scene.path || ''
+					}
+
+					let response = await api.login2(data)
+					if (response.code === 200) {
+						wepy.setStorageSync('userinfo', response.data);
+
+						if(this.$parent.globalData.reg){
+							console.log('zzz')
+							wepy.redirectTo({
+								url:'/pages/register?backpage=' + (this.backPage != '' ?encodeURIComponent(this.backPage):'') + '&backtype=' + this.backType
+							})
+						}else{
+							if (this.backtype === 1) {
+								wepy.redirectTo({
+									url: this.backpage
+								});
+							} else if (this.backtype === 2) {
+								wepy.switchTab({
+									url: this.backpage
+								});
+							} else {
+								let pages = getCurrentPages();
+								if(pages.length === 1){
+									wepy.switchTab({
+										url: '/pages/index'
+									});
+								}else{
+									wepy.navigateBack({
+										delta: 1
+									})
+								}
+							}
+						}
+						
+						wepy.hideLoading();
+					}
+				} else {
+					wepy.hideLoading()
+					wepy.showToast({
+						title: '授权失败', //提示的内容,
+						icon: 'none', //图标,
+					});
+				}
+			}
+		}
+		watch = {
+			headerBg(news,old){
+				console.log(old,news)
+				wx.setNavigationBarColor({
+					backgroundColor:news,
+					frontColor:'#ffffff',
+					animation:300,
+					timingFunc:"easeIn"
+				})
+			}
+		}
+	}
+</script>
+
+<style lang="less" scoped>
+	@import '../static/login.less';
+</style>

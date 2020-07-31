@@ -1,0 +1,252 @@
+
+<template>
+    <view id="rankingCa">
+        <view class="header">
+            <view class="filter  {{filterFixed?'filterFixed':''}}">
+                <view @tap="filterChange(1)" class="single {{filterChecked==1?'active':''}}">实时热销榜</view>
+                <view @tap="filterChange(2)" wx:if="{{wxUser.role == 2}}" class="single {{filterChecked==2?'active':''}}">实时收益榜</view>
+                <view @tap="filterChange(3)" class="single {{filterChecked==3?'active':''}}">今日销量榜</view>
+            </view>
+        </view>
+        <swiper autoplay circular indicatorDots class="bannerSwiper">
+            <swiper-item wx:for="{{bannerList}}" wx:key="index">
+                <image lazy-load="true" class="bannerImg" mode="aspectFill" src="{{item.banner_url}}" />
+            </swiper-item>
+        </swiper>
+        <view class="list">
+            <rankcomponent></rankcomponent>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from '../api/api.js'
+    import * as util from "../util/util.js"
+    import Rankcomponent from "../components/rankcomponent"
+    export default class Rank extends wepy.page {
+        config = {
+            navigationBarTitleText: '全网热销榜',
+        }
+        data = {
+            wxUser: null,
+            share: null,
+            filterChecked: 1,
+            bannerList: [{
+                banner_url: 'https://t00img.yangkeduo.com/goods/images/2019-03-11/b3b8fb57-29b4-487d-99e4-3bca753133aa.jpg'
+            }],
+          
+            page: 1,
+            has: true,
+            isLoading: false,
+            back_top_status: false
+        }
+        components = {
+            rankcomponent: Rankcomponent,
+        }
+        clearData() {
+            this.page = 1
+            this.has = true
+            this.isLoading = false
+            this.$apply()
+        }
+        methods = {
+            filterChange(index, event) {
+                if (this.filterChecked !== index) {
+                    this.filterChecked = index
+                    this.clearData()
+                    this.$apply()
+                    this.loadData('onChange')
+                }
+            },
+            obstacle() {},
+            back_top(event) {
+                wepy.pageScrollTo({
+                    scrollTop: 0
+                })
+            },
+            goodsDetails(goods_id, event) {
+                console.log(goods_id)
+                wepy.navigateTo({
+                    url: '/pages/goodsdetail?goods_id=' + goods_id
+                })
+            },
+            async goPDDApp(event) {
+                let data = event.target.dataset.item
+                let param = {
+                    goods_id: data.goods_id,
+                    from:'rank'
+                }
+                let response = await api.getPddWeAppInfo(param)
+                if (response.code === 200) {
+                    wepy.navigateToMiniProgram({
+                        appId: response.data.appid,
+                        path: response.data.page_path,
+                        extraData: {
+                            pid: response.data.pid
+                        }
+                    })
+                } else {
+                    console.log('get pdd info faile')
+                }
+            }
+        }
+        async loadData(type) {
+            if (this.has === true && this.isLoading === false) {
+                wepy.showLoading()
+                this.isLoading = true
+                let param = {
+                    page: this.page,
+                    type: this.filterChecked,
+                    role:this.wxUser.role
+                }
+                let res = await api.apiRank(param)
+                if (res.code === 200) {
+                    if (type === 'onShow' || type === "onChange") {
+                        this.$invoke("rankcomponent", "empty")
+                    }
+                    if (res.data.length === 0) {
+                        this.has = false
+                    }
+                    this.$invoke('rankcomponent','add',res.data)
+                    this.page++
+                }
+                wepy.hideLoading()
+                this.isLoading = false
+            }
+        }
+        onPageScroll(res) {
+            if (res.scrollTop > 210) {
+                if (this.back_top_status !== true) {
+                    this.back_top_status = true
+                    this.$apply()
+                }
+            } else {
+                if (this.back_top_status !== false) {
+                    this.back_top_status = false
+                    this.$apply()
+                }
+            }
+        }
+        onReachBottom() {
+            this.loadData('onReachBottm')
+        }
+        async onLoad(options) {
+            let backpage = encodeURIComponent("/pages/rank?" + util.serialize(options))
+            let res = await this.$parent.LoginCheck(backpage, 2)
+            if (!res) {
+                return false
+            } else {
+                this.wxUser = res
+            }
+            if (options.check && options.check > 0 && options.check < 3) {
+                if (this.wxUser.role === 0 && options.check === 2) {
+                    this.filterChecked = 1
+                } else {
+                    this.filterChecked = options.check
+                }
+                this.$apply()
+            }
+            this.$invoke('rankcomponent','init',{
+                role:this.wxUser.role,
+                width: 330
+            })
+            this.loadData('onShow')
+            this.getShare()
+        }
+        async getShare() {
+            let response = await api.getShare()
+            if (response.code === 200) {
+                this.share = response.data
+                this.$apply()
+            }
+        }
+        onShareAppMessage(res) {
+            let share = {}
+            if (res.target) {
+                let path = ''
+                let dataset = res.target.dataset
+                path = '/pages/goodsdetail?goods_id=' + dataset.item.goods_id + '&pid=' + this.wxUser.uid
+                let title =dataset.item.goods_name
+                share = {
+                    title: title,
+                    path: path,
+                    imageUrl: dataset.item.goods_thumbnail_url
+                }
+            } else {
+                let path = "/pages/index"
+                if (this.wxUser.role != 0) {
+                    path = path + "?pid=" + this.wxUser.uid
+                }
+                share = {
+                    title: this.share.title,
+                    path: path,
+                    imageUrl: this.share.image
+                }
+            }
+            console.log('rank page share content', share)
+            return share
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    #rankingCa {
+        padding-top: 95rpx;
+        overflow: hidden;
+        .header {
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #fff;
+        }
+        .bannerSwiper {
+            width: 686rpx;
+            height: 280rpx;
+            border-radius: 4px;
+            margin: 10rpx auto 10rpx auto;
+            overflow: hidden;
+            .bannerImg {
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
+        }
+        .filter {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 10rpx;
+            border-bottom: 1rpx solid #f7f7f7;
+            .single {
+                color: #999;
+                height: 60rpx;
+                line-height: 60rpx;
+                font-size: 32rpx; // margin-right: 40rpx;
+                text-align: center;
+                white-space: nowrap;
+                transition: all 0.3s ease;
+                overflow: hidden;
+                font-weight: bold;
+            }
+            .single.active {
+                color: #cfaa71;
+                border-bottom: 4rpx solid #cfaa71;
+            }
+        }
+        .filter.filterFixed {
+            position: fixed;
+            z-index: 1;
+            top: 80rpx;
+            left: 0;
+            right: 0;
+            background-color: #fff;
+        }
+        .list {
+            padding: 0 32rpx;
+            overflow: hidden;
+        }
+    }
+</style>
