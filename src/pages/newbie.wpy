@@ -1,0 +1,163 @@
+<template>
+    <view class="content">
+        <view class="pageTitle">新手教程</view>
+        <swiper autoplay circular indicatorDots class="bannerSwiper">
+            <swiper-item>
+                <image class="bannerImg" mode="aspectFill" src="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/newbie_banner.png" />
+            </swiper-item>
+        </swiper>
+        <view class="article">
+            <view class="title">
+                <image class="icon" mode="scaleToFill" wx:if="{{imgHost}}" src="{{imgHost}}/article/question-icon.png" />
+                <view class="txt">大家都在问</view>
+            </view>
+            <view class="list">
+                <view @tap="lookDetails('{{item.id}}')" class="single" wx:for="{{questionList}}" wx:key="index">
+                    <view class="no">{{index+1}}</view>
+                    <view class="question">{{item.title}}</view>
+                </view>
+            </view>
+        </view>
+        <view class="contactBox">
+            <button class="com-btn-3 contact" openType="contact" sessionFrom="{{user}}">没帮助到我，联系客服</button>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import config from "../config.js"
+    import * as api from "../api/api.js"
+    export default class Newbie extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+        }
+        data = {
+            imgHost: config.imgHost,
+            questionList: null
+        }
+        methods = {
+            lookDetails(id, event) {
+                wx.navigateTo({
+                    url: '/pages/articledetail?id=' + id
+                })
+            }
+        }
+        async loadArticle() {
+            let param = {
+                type: 1
+            }
+            let data = await api.apiArticleList(param)
+            if (data.code === 200) {
+                this.questionList = data.data
+            }
+            this.$apply()
+        }
+        async onLoad() {
+            let backpage = encodeURIComponent('/pages/newbie')
+            let res = await this.$parent.LoginCheck(backpage,1)
+            if(!res){
+                return false
+            }
+            wx.hideShareMenu()
+            this.loadArticle()
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    .content {
+        padding: 100rpx 32rpx 190rpx 32rpx;
+        overflow: hidden;
+        .pageTitle {
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 32rpx 60rpx 32rpx;
+            background-color: #fff;
+        }
+        .bannerSwiper {
+            height: 330rpx;
+            border-radius: 4px;
+            overflow: hidden;
+            .bannerImg {
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
+        }
+        .article {
+            margin-top: 40rpx;
+            background-color: #f5f5f7;
+            overflow: hidden;
+            .title {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-top: 40rpx;
+                overflow: hidden;
+                .icon {
+                    width: 38rpx;
+                    height: 38rpx;
+                    margin-right: 15rpx;
+                }
+                .txt {
+                    color: #cfaa71;
+                    font-size: 36rpx;
+                    font-weight: bold;
+                }
+            }
+            .list {
+                padding: 0 10rpx 0 0;
+                overflow: hidden;
+                .single {
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: center;
+                    height: 110rpx;
+                    .no {
+                        color: #cfaa71;
+                        width: 80rpx;
+                        font-size: 26rpx;
+                        text-align: center;
+                        font-style: oblique;
+                    }
+                    .question {
+                        flex: 1;
+                        height: 100%;
+                        line-height: 110rpx;
+                        font-size: 28rpx;
+                        box-sizing: border-box;
+                        border-bottom: 1px solid #dbdbdb;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        overflow: hidden;
+                    }
+                }
+                .single:last-child .question {
+                    border-bottom: none;
+                }
+            }
+        }
+        .contactBox {
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 20rpx 32rpx 80rpx 32rpx;
+            background-color: #fff;
+            .contact {
+                height: 80rpx;
+                line-height: 80rpx;
+                font-size: 28rpx;
+            }
+            button {
+                background: black;
+                color: white;
+            }
+        }
+    }
+</style>

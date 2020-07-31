@@ -1,0 +1,193 @@
+<template>
+    <view class="content" style="padding-top:{{$nav$nav_height + $nav$nav_margin_top}}px;">
+        <nav></nav>
+        <view class="title">扫码添加客服微信</view>
+        <image class="qrcode" mode="aspectFit" src="{{qrcode}}" />
+        <view class="desc">
+            <view class="desc-item">赚钱攻略</view>
+            <view class="desc-item">省钱技巧</view>
+            <view class="desc-item">涨粉方法</view>
+            <view class="desc-item">升级策略</view>
+            <view class="desc-item">爆款推荐</view>
+            <view class="desc-item">问题处理</view>
+        </view>
+        <view class="text-w text-center guangfa">官方<text class="text-g">一对一运营指导</text> 助您<text class="text-g">月入过万</text></view>
+        <view class="kefu-box">
+            <text class="kefu-box-title">客服微信号</text>
+            <text class="kefu-box-wxhao text-w">{{wxhao}}</text>
+        </view>
+        <view class="tool-box">
+            <view class="box-item saveQrcode" @tap='saveQrcode'>保存二维码</view>
+            <view class="box-item copy-wxhao" @tap='copyWxhao'>复制微信号</view>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from '../api/api.js'
+    import * as util from "../util/util.js"
+    import Nav from "../components/nav"
+    export default class Kefu extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+            navigationStyle: 'custom',
+            navigationBarTextStyle:'white'
+        }
+        data = {
+            qrcode: '',
+            wxhao: ''
+        }
+        components = {
+            nav:Nav
+        }
+        methods = {
+            async saveQrcode(){
+                let ret = await util.getAlbumInfo()
+                if (ret) {
+                    wepy.showLoading({
+                        title: '图片保存中..'
+                    })
+                     let res = await wepy.downloadFile({
+                        url: this.qrcode
+                    })
+                    if (res.statusCode === 200) {
+                        await wepy.saveImageToPhotosAlbum({
+                            filePath: res.tempFilePath
+                        })
+                    }
+                    wepy.hideLoading()
+                } else {
+                    wepy.showToast({
+                        title: '图片保存失败,请手动保存',
+                        icon: 'none'
+                    })
+                }
+            },
+            copyWxhao(){
+                wx.setClipboardData({
+                    data: this.wxhao + ""
+                })
+            }
+        }
+        async onLoad(){
+            let backpage = encodeURIComponent('/pages/kefu')
+            let res = await this.$parent.LoginCheck(backpage,1)
+            if(!res){
+                return false
+            }
+            this.$invoke('nav','init',{
+                title:'',
+                background:"#2f323b",
+                color:"white"
+            })
+            this.getKefuMsg()
+        }
+        async getKefuMsg(){
+            let  response = await api.kefuMsg()
+            if(response.code === 200){
+                this.wxhao = response.data.wxhao,
+                this.qrcode = response.data.qrcode
+                this.$apply()
+            }
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    .content {
+        height: 100vh;
+        padding: 10rpx 80rpx 0;
+        background: #2f323b;
+        .title {
+            text-align: center;
+            font-size: 60rpx;
+            color: white;
+            font-weight: 600;
+            padding-top: 20rpx;
+        }
+        .qrcode {
+            width: 300rpx;
+            height: 300rpx;
+            display: block;
+            margin: 20rpx auto;
+            border: 8rpx solid #cbac7d;
+            border-radius: 10rpx;
+            padding: 6rpx;
+            box-shadow: 0 0 0 10rpx #e8d4b5;
+            margin-top: 50rpx;
+        }
+        .desc {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 20rpx auto;
+            margin-top: 50rpx;
+            view {
+                width: 50%;
+                display: block;
+                text-align: center;
+                color: white;
+                font-size: 50rpx;
+            }
+        }
+    }
+    .desc .text-w {
+        color: white;
+    }
+    .text-g {
+        color: wheat;
+    }
+    .text-w {
+        color: white;
+    }
+    .text-center {
+        text-align: center;
+    }
+    .guangfa {
+        margin: 40rpx 0;
+        font-size: 36rpx;
+    }
+    .kefu-box {
+        width: 80%;
+        background: #3d3b3e;
+        text-align: center;
+        position: relative;
+        padding: 40rpx 5rpx;
+        border: 1px solid #cbac7d;
+        border-radius: 5px;
+        display: block;
+        margin: 0 auto;
+    }
+    .kefu-box .kefu-box-title {
+        position: absolute;
+        left: 50%;
+        top: -15rpx;
+        transform: translateX(-50%);
+        background: #cbac7d;
+        padding: 2rpx 10rpx;
+        border-radius: 24rpx;
+        font-size: 24rpx;
+    }
+    .kefu-box .kefu-box-wxhao {
+        font-size: 40rpx;
+    }
+
+    .tool-box{
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        text-align: center;
+        margin-top: 50rpx;
+
+        .box-item{
+            background: #cbac7d;
+            padding: 16rpx 30rpx;
+            border-radius: 40rpx;
+            font-size: 30rpx;
+        }
+    }
+    
+</style>

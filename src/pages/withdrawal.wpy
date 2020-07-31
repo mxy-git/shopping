@@ -1,0 +1,285 @@
+<template>
+    <view id="withdrawalIndexCa">
+        <form report-submit="true" bindsubmit="withdrawalClick">
+            <view class="formItem">
+                <view class="t">微信号</view>
+                <input  bindinput="realWxinput" class="v" maxlength='20'  placeholder-class='input-placeholder' placeholder="请输入当前微信的微信号" type="text" disabled="{{isWithdrawIng}}" />
+            </view>
+            <view class="formItem">
+                <view class="t">真实姓名</view>
+                <input  bindinput="realNameinput" class="v" maxlength='4' placeholder-class='input-placeholder'  placeholder="请输入当前微信真实姓名" type="text" disabled="{{isWithdrawIng}}" />
+            </view>
+            <view class="formItem">
+                <view class="t">提现金额</view>
+                <input  bindinput="drawinput" class="v" maxlength='8' placeholder-class='input-placeholder' placeholder="请输入你要提现的金额" type="digit" value="{{drawMoney}}" disabled="{{isWithdrawIng}}" />
+            </view>
+            <view class="hint">
+                <view class="balance">可提现金额{{balance}}元</view>
+                <view @tap="alldraw" class="all">全部提现</view>
+            </view>
+            <view style="color:red;font-size:26rpx;margin:10rpx 20rpx 10rpx 0;">注意:真实姓名是企业付款必须的,请务必填写当前微信号所对应的实名用户的姓名,如在工作时间内1个小时未到账请联系客服人员</view>
+            <button form-type="submit" class="com-btn-2 withdrawalBtn" disabled="{{isWithdrawIng}}">立即提现</button>
+        </form>
+        <!-- 说明 -->
+        <text class="explain">说明：
+            <text wx:for="{{desc}}" wx:key="{{index}}">{{item}}
+        </text>
+        </text>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from "../api/api.js";
+    export default class Withdrawal extends wepy.page {
+        config = {
+            navigationBarTitleText: '提现',
+        }
+        data = {
+            realWx:'',
+            realName: "",
+            desc: [],
+            balance: 0.00,
+            drawMoney: "",
+            isWithdrawIng: false,
+            min:10,
+            max:5000,
+        }
+        methods = {
+            realNameinput(event) {
+                this.realName = event.detail.value
+                this.$apply()
+            },
+            realWxinput(event){
+                this.realWx = event.detail.value
+                this.$apply()
+            },
+            drawinput(event) {
+                if (!this.isWithdrawIng) {
+                    let reg = /^[0-9]+.?[0-9]*$/
+                    if (!reg.test(event.detail.value)) {
+                        return ""
+                    } else {
+                        if (parseFloat(event.detail.value) > parseFloat(this.balance)) {
+                            this.drawMoney = this.balance
+                        } else {
+                            this.drawMoney = event.detail.value
+                        }
+                        this.$apply()
+                        return this.drawMoney
+                    }
+                }
+            },
+            alldraw(event) {
+                if (!this.isWithdrawIng) {
+                    this.drawMoney = this.balance
+                    this.$apply()
+                }
+            },
+            async withdrawalClick(event) {
+                let formid = event.detail.formId
+                if (!this.isWithdrawIng) {
+                    this.isWithdrawIng = true
+                    this.$apply()
+                    if (this.realWx === '' || this.realWx.length < 6) {
+                        wepy.showModal({
+                            title: '提示',
+                            content: '请输入当前微信的微信号'
+                        })
+                    }
+
+                    if (this.realName === '') {
+                        wepy.showModal({
+                            title: '提示',
+                            content: '请输入当前微信的真实姓名'
+                        })
+                    }
+                    if (this.drawMoney == '' || this.drawMoney == 0) {
+                        wepy.showModal({
+                            title: '提示',
+                            content: '请输入提现金额'
+                        })
+                        this.isWithdrawIng = false
+                        this.$apply()
+                        return;
+                    }
+                    if (parseFloat(this.drawMoney) < parseFloat(this.min)) {
+                        wepy.showModal({
+                            title: '提示',
+                            content: '提现金额必须大于'+this.min+'元'
+                        })
+                        this.isWithdrawIng = false
+                        this.$apply()
+                        return;
+                    }
+
+                    if(parseFloat(this.drawMoney) > parseFloat(this.max)){
+                        wepy.showModal({
+                            title: '提示',
+                            content: '提现金额不能大于'+this.max+'元'
+                        })
+                        this.isWithdrawIng = false
+                        this.$apply()
+                        return;
+                    }
+
+                    let reg = /^[0-9]+.?[0-9]*$/
+                    if (!reg.test(this.drawMoney)) {
+                        wepy.showModal({
+                            title: '提示',
+                            content: '提现金额错误'
+                        })
+                        this.isWithdrawIng = false
+                        this.$apply()
+                        return ""
+                    } else {
+                        if (parseFloat(event.detail.value) > parseFloat(this.balance)) {
+                            wepy.showModal({
+                                title: '提示',
+                                content: '提现金额错误'
+                            })
+                            this.isWithdrawIng = false
+                            this.$apply()
+                            return ""
+                        } else {
+                            // 发送提现请求
+                            let param = {
+                                realname: this.realName,
+                                money: this.drawMoney,
+                                wx:this.realWx,
+                                formId:formid
+                            }
+                            let response = await api.withdraw(param)
+                            if(response.code === 200){
+                                wepy.showModal({
+                                    title: '提示',
+                                    content: "已提交审核"
+                                })
+                                this.balance = this.balance - this.drawMoney
+                            }else{
+                                wepy.showModal({
+                                    title: '提示',
+                                    content: response.msg
+                                })
+                            }
+                            this.isWithdrawIng = false
+                            this.$apply()
+                            return ""
+                        }
+                    }
+                }
+            }
+        }
+        async onLoad() {
+            let backpage = encodeURIComponent('/pages/withdrawal')
+            let res = await this.$parent.LoginCheck(backpage,1)
+            if(!res){
+                return false
+            }
+            this.getLimit()
+            this.getBalance()
+        }
+        async getBalance() {
+            let response = await api.getUserBalance()
+            if (response.code === 200) {
+                this.balance = response.data.balance
+                this.$apply()
+            }
+        }
+        async getLimit() {
+            let response = await api.getWithdrawalDesc()
+            if (response.code === 200) {
+                this.min = response.data.min
+                this.max = response.data.max
+                for (let i of response.data.require) {
+                    this.desc.push(i)
+                }
+                this.$apply()
+            }
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    .input-placeholder{
+        font-size: 30rpx;
+    }
+
+    #withdrawalIndexCa {
+        input{
+            font-size: 30rpx;
+        }
+        padding: 10rpx 0 32rpx 32rpx;
+        overflow: hidden;
+        .pageTitle {
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 32rpx 60rpx 32rpx;
+            background-color: #fff;
+        }
+        .formItem {
+            border-bottom: 1px solid #dbdbdb;
+            overflow: hidden;
+            .t {
+                color: #333;
+                font-size: 32rpx;
+                margin-top: 30rpx;
+            }
+            .v {
+                height: 130rpx;
+                font-size: 50rpx;
+                font-weight: 100;
+            }
+        }
+        .hint {
+            color: #999;
+            font-size: 28rpx;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24rpx;
+            overflow: hidden;
+            .all {
+                color: #d84f49;
+                width: 196rpx;
+                height: 40rpx;
+                line-height: 40rpx;
+                text-align: center;
+                font-size: 32rpx;
+                border-left: 1px solid #dbdbdb;
+            }
+        }
+        #loginCa {
+            .hint2 {
+                .balance {
+                    color: #999;
+                    font-size: 28rpx;
+                }
+                .all {
+                    color: #d84f49;
+                    width: 196rpx;
+                    height: 40rpx;
+                    line-height: 40rpx;
+                    text-align: center;
+                    font-size: 32rpx;
+                    border-left: 1px solid #dbdbdb;
+                }
+            }
+        }
+        .withdrawalBtn {
+            display: block;
+            width: calc(100% - 32rpx);
+            height: 100rpx;
+            line-height: 100rpx;
+            font-size: 32rpx;
+            margin: 20rpx 0 60rpx 0;
+        }
+        .explain {
+            color: #999;
+            font-size: 24rpx;
+        }
+    }
+</style>

@@ -1,0 +1,811 @@
+<template>
+    <view class="container" style="{{menuActiveIndex == 0?'padding: 256rpx 32rpx 10rpx 32rpx;':'padding: 175rpx 32rpx 10rpx 32rpx;'}}">
+        <view class="header">
+            <image class="logo" lazy-load="true" wx:if="{{menuActiveIndex == 0}}" style="{{sortFixed==1?'display:none;':'display:block;'}}" mode="scaleToFill" src="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/logo.png" />
+            <view class="searchBox">
+                <navigator class="navSearch" hoverClass="none" url="/pages/search">
+                    <view class="search">
+                        <view class="icon icon-search"></view>
+                        <view class="searchVal">请输入关键字</view>
+                    </view>
+                </navigator>
+                <navigator class="message" hoverClass="none" url="/pages/message">
+                    <view class="icon icon-message">
+                        <view wx:if="{{newsCount}}" class="sum">{{newsCount}}</view>
+                    </view>
+                </navigator>
+            </view>
+            <!-- end search -->
+            <scroll-view scrollWithAnimation scrollX class="menu" id="menu" scroll-left="{{menuScrollLeft}}">
+                <view class="list">
+                    <view @tap="menuChange('{{index}}','{{item.opt_id}}')" class="single {{menuActiveIndex == index?'active':''}}" wx:for="{{menus}}" wx:key="index">{{item.opt_name}}</view>
+                </view>
+            </scroll-view>
+            <!-- end scroll view -->
+            <view class="sort" id="goodsSort" wx:if="{{sortFixed == 1}}">
+                <view @tap="sortChange('{{item.index}}','{{item.sortType}}')" class="item {{item.active?'active':''}} {{item.sortType}}" wx:for="{{sort}}" wx:key="index" hidden="{{index == 1}}">{{item.name}}</view>
+                <view class="item {{$filter$hasfilter ? 'filter-focus':''}}"  @tap.stop="filterclick">筛选</view>
+            </view>
+        </view>
+        <!-- end header -->
+        <swiper indicator-dots='true' autoplay='true' interval='4000' display-multiple-items='1' circular class="bannerSwiper" wx:if="{{bannerList && menuActiveIndex ==0}}">
+            <block wx:for="{{bannerList}}" wx:key="index">
+                <swiper-item>
+                    <navigator class="single" hoverClass="none" url="{{item.path}}">
+                        <image lazy-load="true" src="{{item.image_url}}" class="bannerImg" mode="widthFix" />
+                    </navigator>
+                </swiper-item>
+            </block>
+        </swiper>
+        <block wx:if="{{menuActiveIndex!=0}}">
+            <scroll-view scrollWithAnimation scrollX class="subMenu" scrollLeft="0" wx:if="{{subMenus.length > 0}}">
+                <view @tap="subMenuChange('{{item.opt_id}}','{{index}}')" class="single {{subMenuActive==index?'active':''}}" wx:for="{{subMenus}}" wx:key="index">
+                    <image lazy-load="true" class="icon" mode="scaleToFill" src="{{item.icon}}" />
+                    <view class="name">{{item.opt_name}}</view>
+                </view>
+            </scroll-view>
+        </block>
+        <block wx:if="{{menuActiveIndex == 0}}">
+            <!-- <swiper indicatorDots class="navSwiper" wx:if="{{wxUser.role != 0}}">
+                <swiper-item class="item" wx:for="{{navList}}" wx:key="index">
+                    <block wx:for="{{item}}" wx:key="item.id">
+                        <block wx:if="{{item.btn == 1}}">
+                            <button class="btn-nav" open-type="contact" session-from="{{sessionFrom}}" send-message-title="专属客服" send-message-img="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/quick_send.png" show-message-card="true" send-message-path="/pages/custom/custom_392946996">
+                                <image style="width:50rpx;height:50rpx;" lazy-load="true"  mode="scaleToFill" src="{{item.icon}}" />
+                                <view class="name">{{item.name}}</view>
+                            </button>
+                        </block>
+                       
+                        <block wx:else>
+                            <navigator class="nav" url="{{item.path}}">
+                                <image lazy-load="true" class="icon" mode="scaleToFill" src="{{item.icon}}" />
+                                <view class="name">{{item.name}}</view>
+                            </navigator>
+                        </block>
+                    </block>
+                </swiper-item>
+            </swiper> -->
+            <!-- promotion -->
+            <!-- <view class="promotion">
+                <view class="groupTop">
+                    <navigator class="best" hoverClass="none" style="background-image: url('{{youPin.icon}}')" url="{{youPin.path}}">
+                        <view class="title">{{youPin.name}}</view>
+                        <view class="subTitle">
+                            <text>{{youPin.content}}</text>
+                        </view>
+                    </navigator>
+                    <view class="right">
+                        <navigator class="store" hoverClass="none" style="background-image: url('{{meiRiHaoDian.icon}}')" url="{{meiRiHaoDian.path}}">
+                            <view class="title">{{meiRiHaoDian.name}}</view>
+                        </navigator>
+                        <navigator class="brand" hoverClass="none" style="background-image: url('{{pinPaiQingChang.icon}}')" url="{{pinPaiQingChang.path}}">
+                            <view class="title">{{pinPaiQingChang.name}}</view>
+                        </navigator>
+                    </view>
+                </view>
+                <view class="groupBottom">
+                    <navigator class="item" hoverClass="none" style="background-image: url('{{item.icon}}')" url="{{item.path}}" wx:for="{{promotionGroup}}" wx:key="index">
+                        <view class="title">{{item.name}}</view>
+                        <view class="subTitle">{{item.content}}</view>
+                    </navigator>
+                </view>
+            </view> -->
+            <!-- 商品推荐 -->
+            <view class="recommend" wx:if="{{$recommend$goods.length > 0}}">
+                <navigator class="title" hoverClass="none" url="/pages/activities?activitiesType=7&activitiesName=为您推荐">
+                    <view class="v">为您推荐</view>
+                    <view class="icon icon-more" style="padding:0rpx 10rpx;"></view>
+                </navigator>
+                <recommend></recommend>
+            </view>
+        </block>
+        <view class="goodsList">
+            <view class="sort" id="goodsSort" wx:if="{{sortFixed == 0}}">
+                <view @tap="sortChange('{{item.index}}','{{item.sortType}}')" class="item {{item.active?'active':''}} {{item.sortType}}" wx:for="{{sort}}" wx:key="index" hidden="{{index == 1}}">{{item.name}}</view>
+                <view class="item {{$filter$hasfilter ? 'filter-focus':''}}"  @tap.stop="filterclick">筛选</view>
+            </view>
+            <view class="list">
+                <goodslist></goodslist>
+            </view>
+        </view>
+        <filter ref='son_data'></filter>
+        <!-- category -->
+        <cover></cover>
+        <cash></cash>
+        <search></search>
+        <gotop></gotop>
+    </view>
+    <!-- end view -->
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import Config from '../config.js'
+    import * as api from '../api/api.js'
+    import * as util from "../util/util.js"
+    // import Cash from "../components/cash"
+    import Search from "../components/search"
+    import Recommend from "../components/recommend"
+    import GoodsList from "../components/goodslist"
+    import Gotop from "../components/gotop"
+    import Filter from "../components/filter"
+    export default class Index extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+            enablePullDownRefresh:true,
+        };
+        components = {
+            // cash: Cash,
+            search: Search,
+            recommend: Recommend,
+            goodslist: GoodsList,
+            gotop: Gotop,
+            filter:Filter
+        }
+        data = {
+            scrollToTop: 555,
+            wxUser: null,
+            newsCount: '',
+            menus: null,
+            subMenus: [],
+            subMenuActive: null,
+            menuScrollLeft: 0,
+            menuActiveIndex: 0,
+            menuScrollWidth: 0,
+            bannerList: null,
+            navList: null,
+            youPin: null,
+            meiRiHaoDian: null,
+            pinPaiQingChang: null,
+            promotionGroup: null,
+            sessionFrom: '',
+            share: {
+                shareText: '默认分享标题',
+                imageUrl: ''
+            },
+            sort: [{
+                index: 1,
+                active: !0,
+                name: "综合",
+                sortType: ""
+            }, {
+                index: 2,
+                active: !1,
+                name: "佣金",
+                sortType: "sort-icon",
+                codeUp: 1,
+                codeDwn: 2
+            }, {
+                index: 3,
+                active: !1,
+                name: "价格",
+                sortType: "sort-icon",
+                codeUp: 3,
+                codeDwn: 4
+            }, {
+                index: 4,
+                active: !1,
+                name: "销量",
+                sortType: "sort-icon",
+                codeUp: 5,
+                codeDwn: 6
+            }, ],
+            sortFixed: 0,
+            sortChecked: 1,
+            sortType: 0,
+            current_opt_id: 0,
+            page: 1,
+            has: true,
+            isLoading: false,
+            limit: 20,
+
+            money_min:'',
+            money_max:'',
+            only_pinpai:false,
+            only_quan:false
+        }
+        clearData() {
+            this.page = 1
+            this.has = true
+            this.isLoading = false
+        }
+        methods = {
+            async menuChange(index, optid, event) {
+                if (index != this.menuActiveIndex) {
+                    this.subMenuActive = null
+                    this.current_opt_id = optid
+                    this.clearData()
+                    let offsetLeft = event.target.offsetLeft
+                    this.menuScrollLeft = offsetLeft - this.menuScrollWidth * 2 / 5
+                    this.menuActiveIndex = index
+                    this.sortType = 0
+                    this.sortChecked = 1
+                    this.resetSort()
+                    this.$apply()
+                    // 切换菜单
+                    if (index != 0) {
+                        let params = {
+                            opt_id: optid
+                        }
+                        let response = await api.apiSubTags(params)
+                        if (response.code === 200) {
+                            this.subMenus = []
+                            for (let i of response.data) {
+                                this.subMenus.push(i)
+                            }
+                        }
+                        // 菜单切换,加载列表
+                        this.getGoodsList(this.current_opt_id, 0, true)
+                    } else {
+                        this.getGoodsList(this.current_opt_id, 0, true)
+                    }
+                    wepy.pageScrollTo({
+                        scrollTop: 0
+                    })
+                }
+                this.$apply()
+            },
+            subMenuChange(optid, index, event) {
+                this.current_opt_id = optid
+                this.clearData()
+                this.subMenuActive = index
+                this.sortType = 0
+                this.getGoodsList(optid, this.sortType, true)
+                wepy.pageScrollTo({
+                    scrollTop: 0
+                })
+                this.$apply()
+            },
+            sortChange(index, sortType, event) {
+                let that = this
+                let code = 0
+                this.sort.forEach(function(v, k) {
+                    if (v.index == index) {
+                        that.sort[k].active = true
+                        if (that.sortChecked == index) {
+                            if (index == 1) {} else {
+                                if (sortType == 'sort-icon') {
+                                    that.sort[k].sortType = 'sort-icon-up'
+                                    code = that.sort[k].codeUp
+                                } else if (sortType === 'sort-icon-dwn') {
+                                    that.sort[k].sortType = 'sort-icon-up'
+                                    code = that.sort[k].codeUp
+                                } else {
+                                    that.sort[k].sortType = 'sort-icon-dwn'
+                                    code = that.sort[k].codeDwn
+                                }
+                            }
+                        } else {
+                            that.sortChecked = v.index
+                            if (index == 1) {} else {
+                                that.sort[k].sortType = 'sort-icon-up'
+                                code = that.sort[k].codeUp
+                            }
+                        }
+                    } else {
+                        that.sort[k].active = false
+                        if (v['index'] != 1) {
+                            that.sort[k].sortType = 'sort-icon'
+                        }
+                    }
+                });
+                this.clearData()
+                this.$apply()
+                this.sortType = code
+                if (this.current_opt_id) {
+                    this.getGoodsList(this.current_opt_id, this.sortType, true)
+                } else {
+                    this.getGoodsList(this.menuActiveIndex, this.sortType, true)
+                }
+                if (this.menuActiveIndex === 0) {
+                    if (this.sortFixed === 1) {
+                        wepy.pageScrollTo({
+                            scrollTop: this.scrollToTop,
+                            duration: 100
+                        })
+                    }
+                } else {
+                    wepy.pageScrollTo({
+                        scrollTop: 0,
+                        duration: 0
+                    })
+                }
+                this.$apply()
+            },
+            // 点击筛选
+            filterclick() {
+                this.$invoke('filter','show')
+            }
+        }
+
+        // 事件
+        events = {
+            'apply_filter': (money_min,money_max,only_pinpai,only_quan)=>{
+                console.log(money_min,money_max,only_pinpai,only_quan)
+                this.money_min = money_min
+                this.money_max = money_max
+                this.only_pinpai = only_pinpai
+                this.only_quan = only_quan
+
+                // 重新出发加载商品
+                this.page = 1
+                this.has = true
+                this.isLoading = false
+                this.getGoodsList('','',true)
+                 if (this.menuActiveIndex === 0) {
+                    if (this.sortFixed === 1) {
+                        wepy.pageScrollTo({
+                            scrollTop: this.scrollToTop,
+                        })
+                    }
+                } else {
+                    wepy.pageScrollTo({
+                        scrollTop: 0,
+                        duration: 0
+                    })
+                }
+            }
+        }
+
+        // 当页面隐藏的时候清空筛选规则
+        onHide(){
+            this.$invoke('filter','clear')
+        }
+
+        onPageScroll(e) {
+            let that = this
+            if (this.menuActiveIndex === 0) {
+                // console.log(e.scrollTop,this.scrollToTop)
+                if (e.scrollTop >= this.scrollToTop) {
+                    this.$invoke('gotop', 'show')
+                    if (this.sortFixed !== 1) {
+                        this.sortFixed = 1
+                        this.$apply()
+                    }
+                } else {
+                    this.$invoke('gotop', 'hide')
+                    if (this.sortFixed === 1) {
+                        this.sortFixed = 0
+                        this.$apply()
+                    }
+                }
+            } else {
+                if (e.scrollTop >= 100) {
+                    this.$invoke('gotop', 'show')
+                    this.sortFixed = 1
+                    this.$apply()
+                } else {
+                    this.$invoke('gotop', 'hide')
+                    if (this.sortFixed) {
+                        this.sortFixed = 0
+                        this.$apply()
+                    }
+                }
+            }
+            // 现实和隐藏采用固定的高度
+        }
+        resetSort() {
+            this.sort = [{
+                index: 1,
+                active: !0,
+                name: "综合",
+                sortType: ""
+            }, {
+                index: 2,
+                active: !1,
+                name: "佣金",
+                sortType: "sort-icon",
+                codeUp: 1,
+                codeDwn: 2
+            }, {
+                index: 3,
+                active: !1,
+                name: "价格",
+                sortType: "sort-icon",
+                codeUp: 3,
+                codeDwn: 4
+            }, {
+                index: 4,
+                active: !1,
+                name: "销量",
+                sortType: "sort-icon",
+                codeUp: 5,
+                codeDwn: 6
+            }]
+            this.$apply()
+        }
+        async getGoodsList(opt_id, sort_type, need_clear) {
+            need_clear = need_clear || false
+            if (this.isLoading === false && this.has) {
+                this.isLoading = true
+                this.$apply();
+                let params2 = {
+                    opt_id: opt_id || this.current_opt_id || 0,
+                    page: this.page,
+                    sort_type: sort_type || this.sortType || 0,
+                    money_min:this.money_min,
+                    money_max:this.money_max,
+                    only_pinpai:this.only_pinpai,
+                    only_quan:this.only_quan
+                }
+                let data = await api.getGoodsList(params2)
+                if (data.code === 200) {
+                    if (need_clear) {
+                        this.$invoke('goodslist', 'clear', data.data)
+                    } else {
+                        this.$invoke('goodslist', 'add', data.data)
+                    }
+                    if (data.data.length === 0) {
+                        this.has = false;
+                    }
+                    this.$apply()
+                    this.page = this.page + 1
+                    this.isLoading = false
+                }
+            } else {
+                return true;
+            }
+        }
+        watch = {
+            sortFixed(newValue, oldVlaue) {
+                if (newValue == 1) {
+                    wepy.setNavigationBarTitle({
+                        title: '每日必拼'
+                    })
+                } else {
+                    wepy.setNavigationBarTitle({
+                        title: ''
+                    })
+                }
+            }
+        }
+        onReachBottom() {
+            wepy.showLoading()
+            this.getGoodsList()
+            wepy.hideLoading()
+        }
+        onShareAppMessage(res) {
+            let share = {}
+            let path = ''
+            if (res.target) {
+                let dataset = res.target.dataset
+                path = '/pages/goodsdetail?goods_id=' + dataset.item.goods_id + '&pid=' + this.wxUser.uid
+                let title =  dataset.item.goods_name
+                share = {
+                    title: title,
+                    path: path,
+                    imageUrl: dataset.item.goods_thumbnail_url
+                }
+            } else {
+                path = '/pages/index?pid=' + this.wxUser.uid
+                share = {
+                    title: this.share.title,
+                    path: path,
+                    imageUrl: this.share.image
+                }
+            }
+            console.log(share)
+            return share
+        }
+
+        // 处理搜索的剪切板
+        async onShow() {
+            console.log('onshow')
+            // if (this.wxUser && this.wxUser != {}) {
+                let res = await wepy.getClipboardData()
+                res.data = res.data.replace(/\s*/g, "");
+
+                // 处理连接中携带了goods_id的搜索
+                let goods_id_reg = /goods_id=([0-9_]*)&/;
+                let goods_id_result = res.data.match(goods_id_reg)
+                if(goods_id_result && goods_id_result[1]){
+                    console.log('result',goods_id_result)
+                    this.$invoke('search', 'init', {
+                        title:'智能获取到了拼多多商品ID',
+                        search: goods_id_result[1],
+                        is_goods_id:true
+                    })
+                    return true;
+                }
+
+                // 不处理含有表情的搜索
+                let emoji_reg = /[\uD83C|\uD83D|\uD83E][\uDC00-\uDFFF][\u200D|\uFE0F]|[\uD83C|\uD83D|\uD83E][\uDC00-\uDFFF]|[0-9|*|#]\uFE0F\u20E3|[0-9|#]\u20E3|[\u203C-\u3299]\uFE0F\u200D|[\u203C-\u3299]\uFE0F|[\u2122-\u2B55]|\u303D|[\A9|\AE]\u3030|\uA9|\uAE|\u3030/ig
+                if(emoji_reg.test(res.data)){
+                    console.log('content have emoji,return')
+                    return false;
+                }
+                if (res.data != '') {
+                    // 处理特殊的情况
+                    let obj = ['拼团活动价:','活动价:','拼团价格:','价格:',"【原价】"]
+                    for(let i of obj){
+                        let index = res.data.indexOf(i)
+                        if(index > 0){
+                            // 替换所有的中文括号中的内容
+                            let k_reg = /【.*】/g
+                            let search = res.data.substring(0,index)
+                            search = search.replace(k_reg,"")
+                            this.$invoke('search', 'init', {
+                                search: search
+                            })
+                            return true;
+                        }
+                    }
+                    
+                    // 处理含有http连接的情况
+                    if (res.data.indexOf('http') < 0) {
+                        // 替换所有的中文括号中的内容
+                        let k_reg = /【.*】/g
+                        let search = res.data
+                        search = search.replace(k_reg,"")
+                        this.$invoke('search', 'init', {
+                            search: search
+                        })
+                    }
+                // }else{
+                //     return;
+                // }
+            }
+        }
+
+        async onPullDownRefresh(){
+            await this.initLoad()
+            wx.stopPullDownRefresh()
+        }
+
+        initLoad(){
+            wx.showNavigationBarLoading();
+            // 初始化数据
+            this.subMenuActive = null
+            this.menuScrollLeft = 0
+            this.menuActiveIndex = 0
+            this.bannerList = null
+            this.navList = null
+            this.youPin = null
+            this.meiRiHaoDian = null
+            this.pinPaiQingChang = null
+            this.promotionGroup = null
+            this.page = 1
+            this.has = true
+            this.isLoading = false
+            this.sortFixed =0
+            this.sortChecked = 1
+            this.sortType = 0
+            this.current_opt_id= 0
+            this.money_min = ''
+            this.money_max = ''
+            this.only_pinpai = false
+            this.only_quan = false
+            this.sort = [{
+                index: 1,
+                active: !0,
+                name: "综合",
+                sortType: ""
+            }, {
+                index: 2,
+                active: !1,
+                name: "佣金",
+                sortType: "sort-icon",
+                codeUp: 1,
+                codeDwn: 2
+            }, {
+                index: 3,
+                active: !1,
+                name: "价格",
+                sortType: "sort-icon",
+                codeUp: 3,
+                codeDwn: 4
+            }, {
+                index: 4,
+                active: !1,
+                name: "销量",
+                sortType: "sort-icon",
+                codeUp: 5,
+                codeDwn: 6
+            }, ]
+
+            wepy.showLoading()
+            // 初始化推荐商品
+            this.$invoke('recommend', 'init', {
+                role: this.wxUser.role
+            })
+            // 初始化底部的商品列表
+            this.$invoke('goodslist', 'init', {
+                role: this.wxUser.role,
+                width: 330
+            })
+
+            // 获取顶部的商品分类
+            this.getTags()
+            // 加载bannber
+            // this.getBanner()
+            // 获取中间的快捷启动
+            //this.getQuicklyStyle()
+            // 加载首页商品的数据
+            this.getGoodsList(0, 0)
+            // 获取推荐商品
+            this.getRecommend()
+            this.UnReadMessageCount()
+            // 获取分享
+            this.getShare()
+            this.sessionFrom = JSON.stringify({
+                nickName: this.wxUser.nickname,
+                avatarUrl: this.wxUser.avatarurl,
+                source: '首页'
+            })
+            wx.hideNavigationBarLoading()
+            wepy.hideLoading()
+        }
+
+        async onLoad(option) {
+            let backpage = encodeURIComponent("/pages/index")
+            let res = await this.$parent.LoginCheck(backpage, 2)
+            if (!res) {
+                return;
+            } else {
+               this.wxUser = res;
+               this.$apply()
+               this.initLoad()
+            }
+        }
+        async getShare() {
+            let share = await api.getShare()
+            if (share.code === 200) {
+                this.share = share.data
+                this.$apply()
+            }
+        }
+        async getBanner() {
+            let banner = await api.getIndexBanner()
+            if (banner.code === 200) {
+                this.bannerList = banner.data
+                this.$apply()
+            }
+        }
+        async getTags() {
+            let menus = await api.getIndexTags()
+            if (menus.code === 200) {
+                this.menus = menus.data
+                this.$apply()
+                let that = this;
+                setTimeout(() => {
+                    wx.createSelectorQuery().select('#menu').boundingClientRect(function(rect){
+                        if (rect) {
+                            that.menuScrollWidth = rect.width
+                        }
+                    }).exec();
+                }, 300);
+            }
+        }
+        async getQuicklyStyle() {
+            let data = {}
+            let response = await api.getQuicklyStyle(data)
+            if (response.code === 200) {
+                this.navList = response.data[0]
+                let button2 = response.data[1]
+                this.youPin = button2[0]
+                this.youPin.content = this.youPin.content.replace(/\\n/g, '\n')
+                this.meiRiHaoDian = button2[1]
+                this.pinPaiQingChang = button2[2]
+                this.promotionGroup = response.data[2]
+                this.$apply()
+            }
+        }
+        async UnReadMessageCount() {
+            // let response = await api.getUnReadMessageCount()
+            // if (response.code === 200) {
+            //     this.newsCount = response.data.count
+            //     this.$apply()
+            // }
+        }
+        async getRecommend() {
+            // 获取推荐商品
+            let params = {
+                from: 'index'
+            }
+            let system_info = wepy.getSystemInfoSync()
+            let response = await api.getRecommend(params)
+            if (response.code === 200) {
+                if (this.wxUser.role > 0) {
+                    if (response.data.length == 0) {
+                        if (system_info.screenWidth < 360) {
+                            this.scrollToTop = 559;
+                        } else if (system_info.screenWidth < 375) {
+                            this.scrollToTop = 603;
+                        } else if (system_info.screenWidth < 400) {
+                            this.scrollToTop = 644;
+                        } else if (system_info.screenWidth < 450) {
+                            this.scrollToTop = 698;
+                        } else if (system_info.screenWidth < 800) {
+                            this.scrollToTop = 1310;
+                        } else if (system_info.screenWidth <= 1000) {
+                            this.scrollToTop = 1426;
+                        } else if (system_info.screenWidth <= 1030) {
+                            this.scrollToTop = 1702;
+                        } else {
+                            this.scrollToTop = 644;
+                        }
+                    } else {
+                        if (system_info.screenWidth < 360) {
+                            this.scrollToTop = 866;
+                        } else if (system_info.screenWidth < 375) {
+                            this.scrollToTop = 957;
+                        } else if (system_info.screenWidth < 400) {
+                            this.scrollToTop = 1015;
+                        } else if (system_info.screenWidth < 450) {
+                            this.scrollToTop = 1111;
+                        } else if (system_info.screenWidth < 800) {
+                            this.scrollToTop = 2064;
+                        } else if (system_info.screenWidth <= 1000) {
+                            this.scrollToTop = 2245;
+                        } else if (system_info.screenWidth <= 1030) {
+                            this.scrollToTop = 2752;
+                        } else {
+                            this.scrollToTop = 1015;
+                        }
+                    }
+                } else {
+                    if (response.data.length == 0) {
+                        if (system_info.screenWidth < 360) {
+                            this.scrollToTop = 395;
+                        } else if (system_info.screenWidth < 375) {
+                            this.scrollToTop = 430;
+                        } else if (system_info.screenWidth < 400) {
+                            this.scrollToTop = 451;
+                        } else if (system_info.screenWidth < 450) {
+                            this.scrollToTop = 499;
+                        } else if (system_info.screenWidth < 800) {
+                            this.scrollToTop = 922;
+                        } else if (system_info.screenWidth <= 1000) {
+                            this.scrollToTop = 999;
+                        } else if (system_info.screenWidth <= 1030) {
+                            this.scrollToTop = 1233;
+                        } else {
+                            this.scrollToTop = 451;
+                        }
+                    } else {
+                        if (system_info.screenWidth < 360) {
+                            this.scrollToTop = 704;
+                        } else if (system_info.screenWidth < 375) {
+                            this.scrollToTop = 775;
+                        } else if (system_info.screenWidth < 400) {
+                            this.scrollToTop = 827;
+                        } else if (system_info.screenWidth < 450) {
+                            this.scrollToTop = 900;
+                        } else if (system_info.screenWidth < 800) {
+                            this.scrollToTop = 1660;
+                        } else if (system_info.screenWidth <= 1000) {
+                            this.scrollToTop = 1818;
+                        } else if (system_info.screenWidth <= 1030) {
+                            this.scrollToTop = 2232;
+                        } else {
+                            this.scrollToTop = 827;
+                        }
+                    }
+                }
+                this.$invoke('recommend', 'add', response.data)
+            } else {
+                if (system_info.screenWidth < 360) {
+                    this.scrollToTop = 559;
+                } else if (system_info.screenWidth < 375) {
+                    this.scrollToTop = 603;
+                } else if (system_info.screenWidth < 400) {
+                    this.scrollToTop = 644;
+                } else if (system_info.screenWidth < 450) {
+                    this.scrollToTop = 698;
+                } else if (system_info.screenWidth < 800) {
+                    this.scrollToTop = 1310;
+                } else if (system_info.screenWidth <= 1000) {
+                    this.scrollToTop = 1426;
+                } else if (system_info.screenWidth <= 1030) {
+                    this.scrollToTop = 1702;
+                } else {
+                    this.scrollToTop = 644;
+                }
+            }
+        }
+    }
+</script>
+
+<style lang="less">
+    @import '../static/index.less';
+</style>

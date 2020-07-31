@@ -1,0 +1,268 @@
+<template>
+    <view class="content">
+        <image class="page-image-top" src="{{theme_info.image_url}}" style="width:100%;display:block;height:352rpx;" mode="aspectFill" />
+        <view class="goodsList" style="background:{{theme_info.background?theme_info.background:'#f4f3f8'}};padding-bottom:100rpx;">
+            <goodslist></goodslist>
+        </view>
+        <view @tap.stop="share_friends" class="recommend" wx:if="{{!theme_info.is_custom}}">朋友圈主题分享</view>
+        <view class="modal-cover" wx:if="{{show_share_modal}}">
+            <view class="modal-content">
+                <view class="modal-copy-data">
+                    <view class="firends-share">朋友圈分享</view>
+                    <view class="share-content">[拼多多]{{theme_info.name}}点击链接立马购,{{share_url}}</view>
+                </view>
+                <view class="btn-view">
+                    <button class="modal-close com-btn-3" @tap.stop="modal_close">关闭</button>
+                    <button class="modal-copy com-btn-4" @tap.stop="modal_copy">复制</button>
+                </view>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from "../api/api.js"
+    import * as util from '../util/util.js'
+    import Goodslist from '../components/goodslist'
+    export default class Themedetail extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+        }
+        components = {
+            goodslist:Goodslist
+        }
+        data = {
+            wxUser: null,
+            share: null,
+            theme_id: '',
+            theme_name: '',
+            list: [],
+            theme_info:null,
+            page:1,
+            has:true,
+            isLoading:false,
+            share_url:'',
+            show_share_modal: false
+        }
+        hide_modal(){
+            this.show_share_modal = false
+            this.$apply()
+        }
+        methods = {
+            goodsDetails(id, event) {
+                wx.navigateTo({
+                    url: '/pages/goodsdetail?goods_id=' + id
+                })
+            },
+            modal_close(){
+                this.hide_modal()
+            },
+            modal_copy(){
+                let that = this
+                wx.setClipboardData({
+                    data: "[拼多多]"+ that.theme_info.name + "点击链接立马购," + that.share_url,
+                    success(res){
+                        console.log('copy success')
+                        that.hide_modal()
+                    }
+                })
+            },
+            async share_friends(){
+                if(this.share_url){
+                    this.show_share_modal = true
+                    this.$apply()
+                }else{
+                    let param = {
+                        theme_id : this.theme_info.theme_id
+                    };
+                    let response = await api.theme_prom_url_generate(param)
+                    if(response.code == 200){
+                        this.share_url = response.data.url
+                        this.show_share_modal = true
+                        this.$apply()
+                    } else {
+                        wx.showModal({
+                            title: '提示',
+                            content: response.msg,
+                        })
+                    }
+                }
+            }
+        }
+       
+        async onLoad(option) {
+            let backpage = encodeURIComponent("/pages/themedetail?" + util.serialize(option))
+            let res = await this.$parent.LoginCheck(backpage, 1)
+            if(!res){
+                return false;
+            }
+            this.wxUser = res
+            this.theme_id = option.theme_id
+            // 修改页面的标题
+            wx.setNavigationBarTitle({
+                title: option.name ? decodeURIComponent(option.name) : ''
+            })
+            // 商品列表初始化
+            this.$invoke('goodslist','init',{
+                role:this.wxUser.role,
+                width:360
+            })
+            
+            // 获取主题的展示图
+            this.getThemeInfo()
+
+            // 获取主题商品
+            this.getThemeGoodsList()
+
+            
+            this.getShare()
+            this.$apply()
+        }
+
+        // 获取主题的信息
+        async getThemeInfo(){
+            let param = {
+                theme_id : this.theme_id
+            }
+            let res = await api.getThemeInfo(param)
+            if(res.code == 200){
+                this.theme_info = res.data
+                this.$apply()
+            }
+        }
+
+        // 获取主题列表的商品
+        async getThemeGoodsList(){
+            if(this.has && this.isLoading == false){
+                wepy.showLoading()
+                this.isLoading = true
+                let param = {
+                    theme_id: this.theme_id,
+                    page:this.page,
+                    role: this.wxUser.role
+                }
+                let res = await api.getThemeGoodsList(param)
+                if (res.code === 200) {
+                    if(res.data){
+                        this.$invoke('goodslist','add',res.data)
+                    }else{
+                        this.has = false
+                    }
+                    this.page++
+                    this.isLoading = false
+                    this.$apply()
+                    wepy.hideLoading()
+                }
+            }
+        }
+
+        // 触底加载更多,只适用于自定义的主题
+        onReachBottom(){
+            if(this.theme_info.is_custom){
+                this.getThemeGoodsList()
+            }
+        }
+
+        async getShare() {
+            let response = await api.getShare()
+            if (response.code === 200) {
+                this.share = response.data
+                this.$apply()
+            }
+        }
+        onShareAppMessage(res) {
+            let share = {}
+            let path = ''
+            if (res.target) {
+                let item = res.target.dataset.item
+                let title = "[拼多多] 优惠券" + item.coupon_discount + '元' + ',原价￥' + item.old_price + " 券后价￥" + item.final_price
+                path = "/pages/goodsdetail?goods_id=" + item.goods_id + '&pid=' + this.wxUser.uid
+                let img = item.goods_thumbnail_url
+                share = {
+                    title: title,
+                    imageUrl: img,
+                    path: path
+                }
+            } else {
+                share = {
+                    title: "[拼多多]" + this.theme_info.name,
+                    imageUrl: this.theme_info.image_url,
+                    path: '/pages/themedetail?theme_id='+this.theme_id+"&pid="+this.wxUser.uid
+                }
+            }
+            console.log('invite share page', share)
+            return share
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    .content {
+        overflow: hidden;
+        .recommend{
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            height: 90rpx;
+            line-height: 90rpx;
+            width: 100%;
+            text-align: center;
+            background: #a936ff;
+            color: white;
+        }
+        .modal-cover{
+            position: fixed;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            .modal-content{
+                background: white;
+                width: 500rpx;
+                padding: 20rpx;
+                border-radius: 10rpx;
+                position: relative;
+                display: flex;
+                justify-content: space-between;
+                flex-direction: column;
+
+                .firends-share{
+                    margin: 40rpx 0;
+                    font-style: italic;
+                    color: #a936ff;
+                    font-weight: bold;
+                    text-align: center;
+                }
+                .share-content{
+                    position: relative;
+                    font-size: 24rpx;
+                    color: #666;
+                    border: 1px solid #eee;
+                    display: inline-block;
+                    padding: 20rpx;
+                    width: 460rpx;
+                    overflow: hidden;
+                    word-break: break-all;
+                }
+                .btn-view{
+                    margin-top: 30rpx;
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: space-between;
+                    align-items: center;
+                    button{
+                        line-height: 2;
+                        font-size: 26rpx;
+                    }
+                }
+            }
+        }
+    }
+</style>

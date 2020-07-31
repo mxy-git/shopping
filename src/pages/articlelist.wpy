@@ -1,0 +1,126 @@
+<style lang="less" scoped>
+    #schoolListCa {
+        padding: 126rpx 0 0 0;
+        overflow: hidden;
+        .pageTitle {
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 32rpx 60rpx 32rpx;
+            background-color: #fff;
+            border-bottom: 1px solid #dbdbdb;
+        }
+        .list {
+            padding: 0 10rpx 0 0;
+            overflow: hidden;
+            .single {
+                display: flex;
+                justify-content: flex-start;
+                align-items: center;
+                height: 110rpx;
+                overflow: hidden;
+                .no {
+                    color: #cfaa71;
+                    width: 80rpx;
+                    font-size: 26rpx;
+                    text-align: center;
+                    font-style: oblique;
+                }
+                .question {
+                    flex: 1;
+                    height: 100%;
+                    line-height: 110rpx;
+                    font-size: 28rpx;
+                    box-sizing: border-box;
+                    border-bottom: 1px solid #dbdbdb;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                    overflow: hidden;
+                }
+            }
+            .single:last-child {
+                .question {
+                    border-bottom: none;
+                }
+            }
+        }
+    }
+</style>
+
+<template>
+    <view id="schoolListCa">
+        <view class="pageTitle">{{name}}</view>
+        <view class="list">
+            <view @tap="articleDetails('{{item.id}}')" class="single" wx:for="{{list}}" wx:key="index">
+                <view class="no">{{index+1}}</view>
+                <view class="question">{{item.title}}</view>
+            </view>
+        </view>
+        <nomore wx:if="{{!has}}"></nomore>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from '../api/api.js'
+    import Nomore from '../components/nomore'
+    export default class Articlelist extends wepy.page {
+        config = {
+            navigationBarTitleText: ''
+        }
+        components = {
+            nomore: Nomore
+        }
+        data = {
+            type: null,
+            name: null,
+            page: 1,
+            has: true,
+            isLoading: false,
+            list: [],
+            limit: 10
+        }
+        methods = {
+            articleDetails(id, event) {
+                wepy.navigateTo({
+                    url: '/pages/articledetail?id=' + id
+                })
+            }
+        }
+        async loadData() {
+            if (this.has === true && this.isLoading === false) {
+                this.isLoading = true
+                this.$apply()
+                wepy.showLoading()
+                let param = {
+                    type: this.type,
+                    page: this.page
+                }
+                let response = await api.apiArticleList(param)
+                if (response.code === 200) {
+                    if (response.data.length === 0 || response.data.length < this.limit) {
+                        this.has = false
+                    }
+                    for (let i of response.data) {
+                        this.list.push(i)
+                    }
+                    this.page++
+                }
+                this.isLoading = false
+                wepy.hideLoading()
+                this.$apply()
+            }
+        }
+        async onReachBottom() {
+            this.loadData()
+        }
+        onLoad(options) {
+            this.type = options.type
+            this.name = options.name
+            this.$apply()
+            this.loadData()
+        }
+    }
+</script>

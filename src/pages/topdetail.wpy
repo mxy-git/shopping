@@ -1,0 +1,210 @@
+
+
+<template>
+	<view class="content">
+		<view class="header">
+			<view class="title">{{title}}</view>
+			<view class="time">{{time}}</view>
+		</view>
+		<import src="../wxParse/wxParse.wxml" />
+		<view class="v-content">
+			<template is="wxParse" data="{{wxParseData:content.nodes}}">
+</template>
+        </view>
+
+         <navigator class="nav" wx:if="{{navigator}}" url="{{navigator}}" hover-class="none">
+            <view class="content-bottom">
+                查看详情
+            </view>
+        </navigator>
+
+        <view class="operation">
+            <view @tap.shop="goHome" class="home" >
+                <view class="icon icon-home"></view>
+                <view class="name">首页</view>
+            </view>
+            <button class="com-btn-3 share" openType="share">
+                <view class="icon icon-share"></view>
+                <view class="name">分享好友</view>
+            </button>
+        </view>
+    </view>
+</template>
+
+<script>
+	import wepy from 'wepy'
+	import * as api from '../api/api.js'
+	import WxParse from '../wxParse/wxParse.js'
+	export default class Topdetail extends wepy.page {
+		config = {
+			navigationBarTitleText: ''
+		}
+		data = {
+			id: "",
+			wxUser: null,
+			title: '',
+			time: '',
+			image: "",
+			navigator: null
+		}
+		methods = {
+			goHome(event) {
+				wepy.switchTab({
+					url: '/pages/index'
+				})
+			}
+		}
+		onShareAppMessage(res) {
+			if (this.wxUser && this.wxUser.role != 0) {
+				return console.log('share role 1'),{
+					title: this.title,
+					imageUrl: this.image,
+					path: '/pages/topdetail?pid=' + this.wxUser.uid + '&id=' + this.id
+				}
+			} else if (this.wxUser) {
+				return console.log('share'),{
+					title: this.title,
+					imageUrl: this.image,
+					path: '/pages/topdetail?id=' + this.id
+				}
+			}else{
+				console.log('default')
+			}
+		}
+		async onLoad(option) {
+			this.wxUser = await wepy.getStorageSync('userinfo')
+			this.id = option.id
+			let data = {
+				id: this.id
+			}
+			wepy.showLoading()
+			let res = await api.massageDetail(data)
+			if (res.code === 200) {
+				wepy.hideLoading()
+				if (res.data.length === 0) {
+					wx.showModal({
+						title: '提示',
+						content: '文章不存在',
+						success(res) {
+							wx.navigateBack({
+								delta: 1
+							})
+						}
+					})
+					return false
+				} else {
+					/**
+					 * WxParse.wxParse(bindName , type, data, target,imagePadding)
+					 * 1.bindName绑定的数据名(必填)
+					 * 2.type可以为html或者md(必填)
+					 * 3.data为传入的具体数据(必填)
+					 * 4.target为Page对象,一般为this(必填)
+					 * 5.imagePadding为当图片自适应是左右的单一padding(默认为0,可选)
+					 */
+					this.title = res.data.title
+					this.time = res.data.addtime
+					this.navigator = res.data.navigate
+					this.image = res.data.image
+					var that = this
+					WxParse.wxParse('content', 'html', res.data.content, that, 5)
+					this.$apply()
+				}
+			}
+		}
+	}
+</script>
+
+<style lang="less" scoped>
+	@import '../wxParse/wxParse.wxss';
+	.content {
+		padding: 0rpx 0 160rpx 0;
+		overflow: hidden;
+		color: #14191f;
+		font-size: 26rpx;
+		line-height: 1.5;
+		padding: 32rpx;
+		.wxParse-img {
+			display: flex;
+		}
+		.header {
+			overflow: hidden;
+			.title {
+				flex: 1;
+				color: #000;
+				font-size: 36rpx;
+				overflow: hidden;
+			}
+			.time {
+				color: #999;
+				font-size: 24rpx;
+				margin-top: 20rpx;
+			}
+		}
+		.v-content {
+			margin: 40rpx 0;
+		}
+		.wxParse-img {
+			margin: 0 auto;
+			width: 100%;
+			min-height: 200rpx;
+			display: block;
+			background-color: transparent;
+		}
+		.operation {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			position: fixed;
+			z-index: 1;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			padding: 10rpx 0 10rpx 0;
+			background-color: #fff;
+			border-top: 1px solid #dbdbdb;
+			overflow: hidden;
+			button {
+				background: black;
+			}
+			.home {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				flex-direction: column;
+				width: 105rpx;
+				line-height: 1;
+				.icon-home {
+					font-size: 40rpx;
+				}
+				.name {
+					font-size: 20rpx;
+					margin-top: 10rpx;
+					white-space: nowrap;
+					overflow: hidden;
+				}
+			}
+			.share {
+				flex: 1;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				height: 80rpx;
+				line-height: 80rpx;
+				margin-right: 32rpx;
+				.icon-share {
+					margin-right: 20rpx;
+				}
+				.name {
+					color: #fff;
+					font-size: 30rpx;
+				}
+			}
+		}
+		.nav {
+			text-align: center;
+			color: red;
+			font-size: 34rpx;
+			margin: 80rpx auto;
+		}
+	}
+</style>

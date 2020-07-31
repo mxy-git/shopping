@@ -1,0 +1,479 @@
+<template>
+    <view class="content">
+        <view autoplay circular indicatorDots class="bannerSwiper" wx:if="{{wxUser.role > 0}}">
+            <!-- 规则按钮 -->
+            <view class="me-bargain" @tap.stop="meBargain">我的砍价</view>
+            <view class="rule" @tap.stop="showRule">规则</view>
+            <view wx:for="{{bannerList}}" wx:key="index">
+                <image lazy-load="true" class="bannerImg" mode="widthFix" src="{{item.banner_url}}" />
+            </view>
+        </view>
+
+        <view class="list" wx:if="{{wxUser.role > 0}}" >
+            <block wx:if="{{lists.length> 0}}">
+                <!-- 存在砍价商品 -->
+                <block  wx:for="{{lists}}" wx:key="index" wx:for-item="item">
+                    <view class="list-item" @tap.stop="itemClick('{{item.id}}')">
+                        <view class="left">
+                            <image lazy-load="true" mode="widthFix" src="{{item.goods_image}}" />
+                        </view>
+                        <view class="right">
+                            <view class="top">{{item.goods_name}}</view>
+                            <view class="bottom">
+                                <view class="desc">砍价全额返现</view>
+                                <view class="flex">
+                                    <view class="price"><text class="kan">砍</text>¥<text class="price-number">{{item.bargain_price}}</text></view>
+                                    <view class="action">点击免费拿</view>
+                                </view>
+                            </view>
+                        </view>
+                    </view>
+                </block>
+            </block>
+
+            <!-- 不存在砍价商品 -->
+            <block wx:else>
+                <view class="no-product">暂无砍价活动商品,敬请期待</view>
+            </block>
+        </view>
+
+        <!-- 普通用户 -->
+        <view class="no-power" wx:else>
+            <view class="modal-content">
+                <view class="modal-title">提醒</view>
+                <view class="modal-content-text">您还不是会员,请联系客服升级会员</view>
+                <button class="contact" open-type="contact" session-from="{{sessionFrom}}" send-message-title="砍价客服" send-message-img="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/quick_send.png" show-message-card="true" send-message-path="/pages/custom/custom_392946996">
+                    联系客服
+                </button>
+            </view>
+        </view>
+
+        
+        <!-- rule -->
+        <view class="rule-box " wx:if="{{ruleStatus}}">
+            <view class="modal-rule-content">
+                <view class="icon icon-close" @tap.stop='hideRule'></view>
+                <view class="modal-title">活动规则</view>
+                <view class="modal-content">
+                    <view>• 邀请好友一起砍价,砍到0元免费领取商品。</view>
+                    <view>• 领取商品时，需要您先行支付，确认收货15天后全额返现。</view>
+                    <view>• 可在【我的砍价】中查看返现进度详情。</view>
+                    <view>• 每个用户每天可以帮助3个砍价团砍价。</view>
+                    <view>• 砍价完成以后需要商品未下架前，在砍价页领取，逾期失效。请尽快领取</view>
+                    <view class="color-red">提示：邀请新用户，砍价更快哦~</view>
+                </view>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import * as api from '../api/api.js'
+export default class Bargain extends wepy.page{
+    config = {
+        navigationBarTitleText: '砍价免费拿',
+        navigationBarTextStyle: 'black',
+        enablePullDownRefresh: true,
+    }
+
+    // 页面的数据
+    data = {
+        wxUser:{
+            role:1, // 默认防止权限限制的div被展示出来
+        },
+        bannerList: [{
+            banner_url: 'https://pddke.oss-cn-hangzhou.aliyuncs.com/img/bargain-banner.png'
+        }],
+        sessionFrom:null,
+        lists:[],
+        page:1,
+        has:true,
+        limit:10,
+        isLoading:false,
+        ruleStatus:false,
+    }
+
+    // 页面加载
+    async onLoad(){
+        let backpage = encodeURIComponent("/pages/bargain")
+        let res = await this.$parent.LoginCheck(backpage, 2)
+        if (!res) {
+            return false
+        } else {
+            this.wxUser = res
+            this.$apply()
+            if(this.wxUser.role === 0){
+                this.sessionFrom = JSON.stringify({
+                    nickName: this.wxUser.nickname,
+                    avatarUrl: this.wxUser.avatarurl,
+                    source: '砍价联系客服'
+                })
+                this.$apply()
+            }else{
+                this.getList()
+            }
+        }
+    }
+
+    async getList(){
+        if(this.isLoading === false && this.has){
+            this.isLoading = true
+            wepy.showLoading()
+            let param = {
+                page:this.page
+            }
+            let response = await api.getBargainList(param)
+            if(response.code === 200){
+                for(let i of response.data){
+                    this.lists.push(i)
+                }
+                this.$apply()
+                this.page++
+                if(response.data.length < this.limit){
+                    this.has = false
+                }
+            }else{
+                wepy.showToast({
+                    title: response.msg,
+                    icon: 'none'
+                })
+            }
+            this.isLoading = false
+            wepy.hideLoading()
+        }
+    }
+
+    // 下拉刷新
+    async onPullDownRefresh() {
+        this.lists = []
+        this.$apply()
+        this.page = 1
+        this.has = true
+        this.isLoading = false
+        await this.getList()
+        wx.stopPullDownRefresh()
+    }
+
+    onReachBottom(){
+        this.getList()
+    }
+
+    // methods
+    methods = {
+        scrolltolower(res){
+            this.getList()
+        },
+        async itemClick(id){
+            let param = {
+                id:id
+            }
+            let response = await api.userExistBargainForGoods(param);
+            if(response.code === 200){
+                if(response.data.has === true){
+                    wepy.navigateTo({
+                        url: '/pages/bargaindetail?id='+id+'&bargain_id='+response.data.bargain_id
+                    })
+                }else{
+                    wepy.navigateTo({
+                        url: '/pages/bargaindetail?id='+id
+                    })
+                }
+            }else{
+                wepy.showToast({
+                    title: response.msg,
+                    icon:'none'
+                })
+            }
+        },
+        showRule(){
+            this.ruleStatus = true;
+            this.$apply()
+        },
+        hideRule(){
+            this.ruleStatus = false;
+            this.$apply()
+        },
+        meBargain(){
+            wepy.navigateTo({
+                url:'/pages/bargainofme'
+            })
+        }
+    }
+
+    // onShareAppMessage(res){
+    //     let share = {}
+    //     if(!res.target){
+    //         let title = ''
+    //         let path = ''
+    //         let image = ''
+    //         if (this.wxUser.role !== 0) {
+    //             path = '/pages/bargain?pid=' + this.wxUser.uid + "&flag=1"
+    //             title = '每日必拼发布砍价了,活动真实有效,还不快来'
+    //             image = ''
+    //         } else {
+    //             path = '/pages/index'
+    //             title = '每日必拼,自购省钱,分享赚钱'
+    //             image = 'https://pddke.oss-cn-hangzhou.aliyuncs.com/img/share-default-1.png'
+    //         }
+    //         share = {
+    //             title: title,
+    //             path: path,
+    //             imageUrl: image
+    //         }
+    //     }
+
+    //     console.log(share)
+    //     return share
+    // }
+}
+</script>
+<style>
+    page{
+        -webkit-overflow-scrolling: touch;
+        height: 100%;
+        background: white;
+    }
+</style>
+
+<style lang="less" scoped>
+    .content{
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        padding-top: 320rpx;
+        .bannerSwiper {
+            overflow: hidden;
+            position: fixed;
+            z-index: 998;
+            padding: 0 30rpx;
+            border-bottom: 20rpx solid white;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 320rpx;
+            box-sizing: border-box;
+            .bannerImg {
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
+        }
+
+        .no-product{
+            text-align: center;
+            padding-top: 60rpx;
+            font-size: 26rpx;
+            color: #666;
+        }
+
+        .list{
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            margin: 0rpx 30rpx; 
+            width: auto;
+            overflow: scroll;
+            .list-item{
+                box-sizing: border-box;
+                overflow: hidden;
+                display: flex;
+                flex-direction: row;
+                border-bottom: 1px solid #eee;
+                // align-items: center;
+                padding: 20rpx;
+                box-sizing: border-box;
+                margin: 10rpx 0;
+                background: #f5f5f7;
+                border-radius: 5rpx;
+                &:last-child{
+                    border-bottom: none;
+                }
+                .left{
+                    width: 210rpx;
+                    image{
+                        width: 210rpx;
+                        height: 210rpx;
+                        border-radius: 10rpx;
+                    }
+                    margin-right: 20rpx;
+                }
+                .right{
+                    max-width: 440rpx;
+                    flex-grow: 1;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+
+                    .top{
+                        font-size: 26rpx;
+                        color: #1d1d1f;
+                        font-weight: 500;
+                    }
+                    .bottom{
+                        .desc{
+                            color: #8d93a0;
+                            font-size: 22rpx;
+                            padding-bottom: 20rpx;
+                        }
+                        
+                        .flex{
+                            display: flex;
+                            flex-direction: row;
+                            justify-content: space-between;
+                            align-items: center;
+
+                            .price{
+                                color: #1d1d1f;
+                                font-weight: bold;
+                                font-size: 22rpx;
+                                display: flex;
+                                align-items: center;
+                                .price-number{
+                                    font-size: 34rpx;
+                                    margin-left:5rpx;
+                                }
+                                .kan{
+                                    background: #ff6b87;
+                                    color: white;
+                                    padding: 5rpx 10rpx;
+                                    border-radius: 5rpx;
+                                    margin-right: 10rpx;
+                                }
+                            }
+                            .action{
+                                background: linear-gradient(to right, #ff8287, #ff5286);
+                                padding: 10rpx 15rpx;
+                                border-radius: 5rpx;
+                                color: white;
+                                font-size: 28rpx;
+                                letter-spacing: 2rpx;
+                                font-weight: bold;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        .no-power{
+            position: fixed;
+            left:0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            z-index:1000;
+            background: rgba(0, 0, 0, 0.3);
+
+            .modal-content{
+                width: 76%;
+                background: white;
+                border-radius: 20rpx;
+                position:absolute;
+                left: 50%;
+                top: 50%;
+                transform: translateX(-50%) translateY(-50%);
+                padding: 40rpx;
+                .modal-title{
+                    font-size: 32rpx;
+                    text-align: center;
+                    margin-bottom: 40rpx;
+                }
+                .modal-content-text{
+                    color: #666;
+                    margin-bottom: 40rpx;
+                    text-align: center;
+                    font-size: 30rpx;
+                }
+
+                button{
+                    background-image: linear-gradient(220deg, #FF9A8B 0%, #FF6A88 55%, #FF99AC 100%);
+                    color: white;
+                }
+            }
+        }
+
+        // 规则
+        .rule{
+            z-index: 1001;
+            position: absolute;
+            right:  80rpx;
+            top:0;
+            background: linear-gradient(to right, #a936ff, #7d31ff);
+            letter-spacing: 3rpx;
+            color: white;
+            height: 60rpx;
+            line-height: 60rpx;
+            font-size: 26rpx;
+            padding: 0 10rpx;
+            border-bottom-left-radius: 50%;
+            border-bottom-right-radius: 50%;
+        }
+
+        // 规则弹出
+        .rule-box{
+            position: fixed;
+            left:0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index:9999;
+            .modal-rule-content{
+                width: 60%;
+                background: white;
+                border-radius: 10rpx;
+                position:absolute;
+                left: 50%;
+                top: 50%;
+                transform: translateX(-50%) translateY(-50%);
+                padding: 60rpx 40rpx;
+
+                .icon-close{
+                    position: absolute;
+                    top: 20rpx;
+                    right: 20rpx;
+                }
+
+                .modal-title{
+                    text-align: center;
+                    color:#ff6b87;
+                    font-weight: bold;
+                    margin-bottom: 30rpx;
+                    font-size: 30rpx;
+                }
+
+                .modal-content{
+                    font-size: 26rpx;
+                    color: #666;
+                    letter-spacing: 2rpx;
+
+                }
+
+                .color-red{
+                    margin-top: 10rpx;
+                    color: red;
+                }
+            }
+        }
+
+        // 我的砍价
+        .me-bargain{
+            position: absolute;
+            right: 30rpx;
+            bottom: 30rpx;
+            background:linear-gradient(to right, #a936ff, #7d31ff);
+            color: white;
+            word-break: break-all;
+            text-align: center;
+            padding: 5rpx 10rpx 5rpx 20rpx;
+            height: 50rpx;
+            line-height: 50rpx;
+            font-size: 24rpx;
+            border-top-left-radius: 50rpx;
+            border-bottom-left-radius: 50rpx;
+            z-index: 999;
+        }
+    }
+</style>

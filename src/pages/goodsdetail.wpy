@@ -1,0 +1,1241 @@
+<template>
+    <view class="content" style="padding-top:{{$nav$nav_margin_top + $nav$nav_height}}px">
+        <nav></nav>
+        <block wx:if="{{goodsInfo}}">
+            <swiper autoplay circular indicatorDots class="bannerSwiper">
+                <swiper-item wx:for="{{goodsInfo.goods_gallery_urls}}" wx:key="index">
+                    <image @tap="bannerPreviewImg" class="bannerImg" data-index="{{index}}" mode="scaleToFill" src="{{item}}" />
+                </swiper-item>
+            </swiper>
+            <view class="goodsName">{{goodsInfo.goods_name}}
+                <block wx:if="{{wxUser.role > 0}}">
+                    <block wx:if="{{goodsInfo.activity_type}}">
+                        <text class="tags">{{goodsInfo.activity_type}}</text>
+                    </block>
+                    <block wx:if="{{goodsInfo.service_tags.length > 0}}">
+                        <text class="tags" wx:for="{{goodsInfo.service_tags}}" wx:key="index">官方推荐</text>
+                    </block>
+                </block>
+                <block wx:else>
+                    <text class="tags">官方推荐</text>
+                </block>
+            </view>
+            <view class="money">
+                <view class="left">
+                    <view class="top">
+                        <view @tap="copyGoodsId" class="priceAfter" data-id="{{goodsInfo.goods_id}}">进货价<text class="text-blod">￥{{goodsInfo.final_price}}</text></view>
+                        <view class="priceBefore">原价：{{goodsInfo.old_price}}</view>
+                        <!-- <view class="coupon">券￥{{goodsInfo.coupon_discount}}</view> -->
+                    </view>
+                    <view class="bottom">剩余：<text class="text-blod">{{goodsInfo.coupon_remain_quantity}}</text>件</view>
+                </view>
+                <view class="right">
+                    <view class="sold">已售{{goodsInfo.sold_quantity}}件</view>
+                    <view @tap="collection" class="favorite {{goodsInfo.isCollection?'active':''}}">
+                        <view class="icon icon-heart"></view>
+                        <view class="icon icon-heart Active"></view>
+                        <view class="name {{goodsInfo.isCollection?'active':''}}">{{goodsInfo.isCollection?'已收藏':'收藏'}}</view>
+                    </view>
+                </view>
+            </view>
+            <!-- <view class="couponInfo" wx:if="{{goodsInfo.coupon_remain_quantity}}">
+                <view class="box">
+                    <view class="couponBig">
+                        <view class="t" @tap.stop="goPDDApp" data-item="{{goodsInfo}}">优惠券</view>
+                        <view class="right" @tap.stop="goPDDApp" data-item="{{goodsInfo}}">
+                            <view class="v" @tap.stop="goPDDApp" data-item="{{goodsInfo}}">￥{{goodsInfo.coupon_discount}}</view>
+                            <view class="time" @tap.stop="goPDDApp" data-item="{{goodsInfo}}">有效期 {{goodsInfo.start_time}}-{{goodsInfo.end_time}}</view>
+                        </view>
+                    </view>
+                    <view class="residue">
+                        <view class="t">优惠券剩余</view>
+                        <view class="v">{{goodsInfo.coupon_remain_quantity}}/{{goodsInfo.coupon_total_quantity}}张</view>
+                    </view>
+                </view>
+            </view> -->
+            <!-- <view class="goode-info-bottom">
+                <view class="single">
+                    <view class="t">描述相符</view>
+                    <view class="v">{{goodsInfo.avg_desc>0?goodsInfo.avg_desc/100:4.5}}</view>
+                    <view class="u">高</view>
+                </view>
+                <view class="single">
+                    <view class="t">服务态度</view>
+                    <view class="v">{{goodsInfo.avg_serv>0?goodsInfo.avg_serv/100:4.5}}</view>
+                    <view class="u">高</view>
+                </view>
+                <view class="single">
+                    <view class="t">物流服务</view>
+                    <view class="v">{{goodsInfo.avg_lgst>0?goodsInfo.avg_lgst/100:4.5}}</view>
+                    <view class="u">高</view>
+                </view>
+            </view>
+            <view class="storeInfo" wx:if="{{merchantInfo}}">
+                <view class="top">
+                    <view class="left">
+                        <image class="img" mode="aspectFill" src="{{merchantInfo.mall_logo}}" />
+                        <view class="txt">
+                            <view class="name">
+                                <text class="mall_name">{{merchantInfo.mall_name}}</text>
+                                <text class="mall_type">{{merchantInfo.mall_type}}</text>
+                            </view>
+                            <view class="sum">商品数量：{{merchantInfo.goods_count}}　{{merchantInfo.sales_tip}}</view>
+                        </view>
+                    </view>
+                    <navigator class="com-btn-3 goStore" hoverClass="none" url="/pages/shop?mall_id={{merchantInfo.mall_id}}">进店逛逛</navigator>
+                </view>
+                <view class="bottom">
+                    <recommend></recommend>
+                </view>
+            </view> -->
+            <view class="article">
+                <view class="title">商品详情</view>
+                <view class="introduce">{{goodsInfo.goods_desc}}</view>
+                <view class="imgList">
+                    <image @tap="goodsPreviewImg('{{item}}')" class="img" data-index="{{index}}" lazyLoad="{{true}}" mode="widthFix" src="{{item}}" wx:for="{{goodsInfo.goods_detail}}" wx:key="index" />
+                </view>
+            </view>
+            <!-- <view class="similar" wx:if="{{goodsList}}">
+                <view class="title">相似商品</view>
+                <view class="list">
+                    <goodslist></goodslist>
+                </view>
+            </view> -->
+            <view class="operation">
+                <view class="operation-left">
+                    <navigator class="home" openType="switchTab" url="/pages/index">
+                        <view class="icon icon-home"></view>
+                        <view class="name">首页</view>
+                    </navigator>
+                    <view @tap="openShareDialog" class="share statis-shareMore" wx:if="{{wxUser.role== 2}}">
+                        <view class="icon icon-share"></view>
+                        <view class="name">分享</view>
+                    </view>
+                </view>
+                <view class="operation-right">
+                    <!-- <block wx:if="{{wxUser.role!=0}}">
+                        <button @tap.stop="goPDDApp" class="com-btn-2 btn statis-buy" data-item="{{goodsInfo}}">自购省￥{{goodsInfo.sheng}}</button>
+                        <button class="com-btn-3 btn statis-share" openType="share" data-item="{{goodsInfo}}">分享赚￥{{goodsInfo.commission}}</button>
+                    </block>
+                    <block wx:else>
+                        <button class="com-btn-2 btn statis-share" openType="share" data-item="{{goodsInfo}}">分享好友购买</button>
+                        <button @tap.stop="goPDDApp" class="com-btn-3 btn statis-buy" data-item="{{goodsInfo}}">立即领券购买</button>
+                    </block> -->
+                     <button class="com-btn-3 btn statis-share" openType="share" data-item="{{goodsInfo}}">分享进货</button>
+                </view>
+            </view>
+            <view @tap="closeShareDialog" class="shareDialog {{shareDialogShow?'show':''}}">
+                <view class="content">
+                    <view @tap.stop="closeShareDialog" class="close">
+                        <view class="icon icon-close"></view>
+                    </view>
+                    <view class="title">分享</view>
+                    <view class="goodsInfo">
+                        <view class="item name">{{goodsInfo.goods_name}}</view>
+                        <view class="item">拼团活动价: ¥ {{goodsInfo.old_price}}</view>
+                        <view class="item">优惠券后价: ¥ {{goodsInfo.final_price}}</view>
+                        <view class="item">优惠连接: {{pddInfo.link}}</view>
+                    </view>
+                    <view class="btns">
+                        <view @tap="copyTextShareImg" class="btn" data-shareType="H5">
+                            <image class="icon" mode="aspectFit" wx:if="{{config.ossImg}}" src="{{config.ossImg}}/share-h5-icon.png" />
+                            <text class="name">复制文案并生成\nH5分享图片</text>
+                        </view>
+                        <view @tap="copyTextShareBipin" class="btn">
+                            <image class="icon" mode="aspectFit" wx:if="{{config.ossImg}}" src="{{config.ossImg}}/share-weapp-icon.png" />
+                            <text class="name">复制文案并生成\n小程序分享图</text>
+                        </view>
+                        <view @tap="copyText" class="btn">
+                            <image class="icon" mode="aspectFit" wx:if="{{config.ossImg}}" src="{{config.ossImg}}/share-text-icon.png" />
+                            <text class="name">复制文案推广内\n容</text>
+                        </view>
+                        <view @tap="copyUrl" class="btn">
+                            <image class="icon" mode="aspectFit" wx:if="{{config.ossImg}}" src="{{config.ossImg}}/share-link-icon.png" />
+                            <text class="name">获取外部跳转微\n信领券链接</text>
+                        </view>
+                    </view>
+                </view>
+            </view>
+            <canvas canvasId="share" style="position: fixed; z-index: -1; top:0; left:-200vw; width:750rpx; height:1334rpx;"></canvas>
+            <gotop></gotop>
+        </block>
+        <block wx:else>
+            <view class="lower-shelf-view">
+                <view class="lower-shelf-view-box">
+                    <text  class="lower-shelf-view-tips">抱歉! 该商品已下架</text>
+                    <button class="lower-shelf-view-btn" @tap.stop="goHome">逛逛其他</button>
+                </view>
+            </view>
+        </block>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from "../api/api.js"
+    import config from "../config.js"
+    import Nav from "../components/nav"
+    import * as util from "../util/util.js"
+    import Goodslist from '../components/goodslist'
+    import Gotop from '../components/gotop'
+    import Recommend from '../components/recommend'
+    export default class Goodsdetail extends wepy.page {
+        config = {
+            // navigationBarTitleText: '详情',
+            navigationStyle: 'custom',
+        }
+        data = {
+            wxUser: null,
+            goods_id: '',
+            config: config,
+            goodsInfo: {
+                default:1
+            },
+            comment: [],
+            merchantInfo: null,
+            goodsList: [],
+            page: 1,
+            has: true,
+            isLoading: false,
+            share: {},
+            shareDialogShow: false,
+            pddInfo: {},
+            rate: 0,
+            gotop_status: false,
+        }
+        components = {
+            nav: Nav,
+            goodslist: Goodslist,
+            gotop: Gotop,
+            recommend: Recommend
+        }
+        methods = {
+            bannerPreviewImg() {
+                console.log(1)
+            },
+            // 返回首页
+            goHome(){
+                let pages = getCurrentPages();
+                if(pages.length === 1){
+                    wepy.switchTab({
+                        url:'/pages/index'
+                    })
+                }else{
+                    wepy.navigateBack({
+                        delta: 1
+                    })
+                }
+            },
+            goodsDetails(id, event) {
+                wx.navigateTo({
+                    url: "/pages/goodsdetail?goods_id=" + id
+                });
+            },
+            goodsPreviewImg(src, event) {
+                // 详情商品图片预览
+                wx.previewImage({
+                    current: src, // 当前显示图片的http链接
+                    urls: this.goodsInfo.goods_detail // 需要预览的图片http链接列表
+                })
+            },
+            lookCommentAll() {
+                console.log('look comment')
+            },
+            // 打开分享跳窗
+            async openShareDialog() {
+                this.shareDialogShow = true
+                this.$apply()
+                if (!this.pddInfo.link) {
+                    let param = {
+                        goods_id: this.goods_id,
+                        from:'goodsdetail_dialog'
+                    }
+                    let response = await api.getPddWeAppInfo(param)
+                    if (response.code === 200) {
+                        this.pddInfo.link = response.data.short_url
+                        this.$apply()
+                    } else {
+                        console.log('get pdd info faile')
+                    }
+                }
+            },
+            // 关闭分享弹窗
+            closeShareDialog() {
+                this.shareDialogShow = false
+                this.$apply()
+            },
+            async copyTextShareBipin() {
+                // 复制文案被生成每日必拼的分享图
+                let data = this.goodsInfo.goods_name + '\n拼团活动价: ' + this.goodsInfo.old_price + "元\n优惠券后价: " + this.goodsInfo.final_price + "元\n优惠连接: " + this.pddInfo.link
+                wepy.setClipboardData({
+                    data: data
+                })
+                let ret = await util.getAlbumInfo()
+                if (!ret) {
+                    return false
+                } else {
+                    wepy.showLoading({
+                        title: '图片保存中..'
+                    })
+                    let download = await wepy.downloadFile({
+                        url: this.goodsInfo.goods_gallery_urls[0]
+                    })
+                    let drawData = this.goodsInfo
+                    drawData.background = "../assets/share-bg.png"
+                    drawData.goodsImg = download.tempFilePath
+                    drawData.type = 'weapp'
+                    // 下载每日必拼的小程序码
+                    let param = {
+                        goods_id: this.goodsInfo.goods_id,
+                    }
+                    let response = await api.getShareWeappQrcode(param)
+                    if (response.code === 200) {
+                        let qrcode = await wepy.downloadFile({
+                            url: response.data.qrcode
+                        })
+                        drawData.qrcode = qrcode.tempFilePath
+                        console.log('合成数据', drawData)
+                        //绘制
+                        this.drawImage(drawData)
+                        wepy.hideLoading()
+                    } else {
+                        console.log('下载二维码失败')
+                        wepy.hideLoading()
+                        wepy.showToast({
+                            title: '获取小程序码失败',
+                            icon: 'none'
+                        })
+                    }
+                }
+            },
+            async copyTextShareImg() {
+                // 复制文案并且声称h5分享图片,
+                let data = this.goodsInfo.goods_name + '\n拼团活动价: ' + this.goodsInfo.old_price + "元\n优惠券后价: " + this.goodsInfo.final_price + "元\n优惠连接: " + this.pddInfo.link
+                wepy.setClipboardData({
+                    data: data
+                })
+                // 生成h5的海报
+                let ret = await util.getAlbumInfo()
+                if (ret) {
+                    wepy.showLoading({
+                        title: '图片保存中..'
+                    })
+                    let download = await wepy.downloadFile({
+                        url: this.goodsInfo.goods_gallery_urls[0]
+                    })
+                    let drawData = this.goodsInfo
+                    drawData.background = "../assets/share-backgroumd.png"
+                    drawData.goodsImg = download.tempFilePath
+                    drawData.type = 'h5'
+                    // 下载h5的二维码
+                    let param = {
+                        goods_id: this.goodsInfo.goods_id,
+                        short: encodeURIComponent(this.pddInfo.link)
+                    }
+                    let h5 = await api.getShareH5QrcodeByLink(param)
+                    if (h5.code === 200) {
+                        let qrcode = await wepy.downloadFile({
+                            url: h5.data.qrcode
+                        })
+                        drawData.qrcode = qrcode.tempFilePath
+                        console.log('合成数据', drawData)
+                        //绘制
+                        this.drawImage(drawData)
+                        wepy.hideLoading()
+                    } else {
+                        console.log('下载二维码失败')
+                    }
+                }
+            },
+            // 复制推广文案
+            copyText() {
+                let data = this.goodsInfo.goods_name + '\n原价: ' + this.goodsInfo.old_price + "元\n券后价: " + this.goodsInfo.final_price + "元\n优惠连接: " + this.pddInfo.link
+                wepy.setClipboardData({
+                    data: data
+                })
+            },
+            // 复制外部推广链接
+            copyUrl() {
+                let data = this.pddInfo.link
+                wepy.setClipboardData({
+                    data: data
+                })
+            },
+            async collection() {
+                let param = {
+                    goods_id: this.goodsInfo.goods_id
+                }
+                if (this.goodsInfo.isCollection === true) {
+                    let response = await api.unCollection(param)
+                    if (response.code !== 200) {
+                        wepy.showToast({
+                            title: response.msg,
+                            icon: 'none'
+                        })
+                    } else {
+                        this.goodsInfo.isCollection = false
+                    }
+                } else {
+                    let response = await api.collection(param)
+                    if (response.code !== 200) {
+                        wepy.showToast({
+                            title: response.msg,
+                            icon: 'none'
+                        })
+                    } else {
+                        this.goodsInfo.isCollection = true
+                    }
+                }
+                this.$apply()
+            },
+            async goPDDApp(event) {
+                console.log(event)
+                let info = event.currentTarget.dataset.item
+                let param = {
+                    goods_id: info.goods_id,
+                    from:'from_goods_detail'
+                }
+                let response = await api.getPddWeAppInfo(param)
+                if (response.code === 200) {
+                    wepy.navigateToMiniProgram({
+                        appId: response.data.appid,
+                        path: response.data.page_path,
+                        extraData: {
+                            pid: response.data.pid
+                        },
+                        fail: function(res) {
+                            console.log('取消跳转')
+                        }
+                    }).catch((err) => {
+                        console.log(err)
+                    })
+                } else {
+                    console.log('get pdd info faile')
+                }
+            },
+            obstacle(event) {
+                console.log('obstacle')
+            }
+        }
+        async loadData() {
+            if (!this.goodsInfo) {
+                return false;
+            }
+            if (this.isLoading === false && this.has === true) {
+                wepy.showLoading()
+                this.isLoading = true;
+                let params = {
+                    page: this.page,
+                    opt_id: this.goodsInfo['opt_id'],
+                    sort_type: 0
+                }
+                let res = await api.getGoodsList(params)
+                if (res.code === 200) {
+                    if (res.data.length === 0) {
+                        this.has = false
+                    }
+                    this.$invoke('goodslist', 'add', res.data)
+                    this.page++
+                }
+                this.isLoading = false
+                wepy.hideLoading()
+                this.$apply()
+            }
+        }
+        onReachBottom() {
+            this.loadData()
+        }
+        async getGoodsInfo() {
+            let data = {
+                goods_id: this.goods_id
+            }
+            let res = await api.apiGoodsDetail(data)
+            if (res.code === 200) {
+                this.goodsInfo = res.data
+                this.goodsInfo.sheng = (parseFloat(this.goodsInfo.commission) + parseFloat(this.goodsInfo.coupon_discount)).toFixed(2)
+                this.$apply()
+            } else if (res.code === 50001) {
+                wepy.hideLoading()
+                this.goodsInfo = null
+                this.$apply()
+                return false
+            }
+        }
+        async getMallInfo() {
+            if (!this.goodsInfo) {
+                return false;
+            }
+            // 获取店铺信息
+            let param = {
+                mall_id: this.goodsInfo.mall_id
+            }
+            let response = await api.getMallInfo(param)
+            if (response.code === 200) {
+                if (response.data.mall_id) {
+                    this.merchantInfo = response.data
+                    if (this.merchantInfo.goods_list.length > 0) {
+                        this.$invoke('recommend', 'add', this.merchantInfo.goods_list)
+                    }
+                    this.$apply()
+                }
+            }
+        }
+        // 商品评论
+        async getComment() {
+            let params = {
+                type: 1,
+                page: 1,
+                goods_id: this.goods_id
+            };
+            let comment = await api.apiGetComment(params)
+            if (comment.code === 200) {
+                console.log(comment)
+                this.comment = comment.data
+            }
+        }
+        async onLoad(options) {
+            if (options.hasOwnProperty('scene')) {
+                let scene = decodeURIComponent(options.scene)
+                let res_1 = util.querystring2obj(scene)
+                options.goods_id = res_1.g
+                delete options.scene;
+            }
+            let backpage = encodeURIComponent('/pages/goodsdetail?' + util.serialize(options))
+            let res = await this.$parent.LoginCheck(backpage, 1)
+            if (!res) {
+                return false
+            } else {
+                this.wxUser = res
+            }
+            this.$invoke('nav', 'init', {
+                title: '商品详情'
+            })
+            this.$invoke('goodslist', 'init', {
+                role: this.wxUser.role,
+                width: 330
+            })
+            this.$invoke('recommend', 'init', {
+                role: this.wxUser.role,
+            })
+            let system_info = await wepy.getSystemInfo()
+            this.rate = system_info.windowWidth / 750
+            this.goods_id = options.goods_id || options.g
+            this.$apply()
+            wepy.showLoading()
+            // 获取商品信息
+            await this.getGoodsInfo()
+            // 获取店铺信息
+            this.getMallInfo()
+            // 获取评论
+            // await this.getComment()
+            // 获取相似商品
+            this.loadData()
+            // 获取默认分享
+            this.getShare()
+            wepy.hideLoading()
+        }
+        onPageScroll(e) {
+            if (e.scrollTop > 1500) {
+                if (this.gotop_status == false) {
+                    this.gotop_status = true
+                    this.$invoke('gotop', 'show')
+                }
+            } else {
+                if (this.gotop_status == true) {
+                    this.gotop_status = false
+                    this.$invoke('gotop', 'hide')
+                }
+            }
+        }
+        // 获取默认的分享
+        async getShare() {
+            let shareResponse = await api.getShare()
+            let path = "/pages/index"
+            if (this.wxUser) {
+                path += "?pid=" + this.wxUser.uid
+            }
+            if (shareResponse.code === 200) {
+                this.share = {
+                    title: shareResponse.data.title,
+                    paht: path,
+                    imageUrl: shareResponse.data.image
+                }
+            } else {
+                this.share = {
+                    title: "邀您使用优惠券小程序,万能的券 省剁手的钱~",
+                    paht: path,
+                    imageUrl: 'https://pddke.oss-cn-hangzhou.aliyuncs.com/img/share-default-1.png'
+                }
+            }
+        }
+        // 分享
+        onShareAppMessage(res) {
+            let share = {}
+            let path = ''
+            let goods_id = '';
+            // 处理当用户未空的时候的分享
+            if (!this.wxUser) {
+                return false
+            }
+            // 当商品下架的时候,处理用户的分享
+            if (!this.goodsInfo) {
+                return this.share
+            }
+            // success
+            if (res.target) {
+                try {
+                    let item = res.target.dataset.item
+                    let title = ''
+                    let img = ''
+                    if (item) {
+                        goods_id = item.goods_id
+                        path = "/pages/goodsdetail?goods_id=" + goods_id + "&pid=" + this.wxUser.uid
+                        title = this.goodsInfo.goods_name
+                        img = item.goods_thumbnail_url
+                    } else {
+                        goods_id = this.goodsInfo.goods_id
+                        path = "/pages/goodsdetail?goods_id=" + goods_id + "&pid=" + this.wxUser.uid
+                        title =  this.goodsInfo.goods_name
+                        img = this.goodsInfo.goods_thumbnail_url
+                    }
+                    share = {
+                        title: title,
+                        imageUrl: img,
+                        path: path
+                    }
+                } catch (e) {
+                    let info = res
+                    info.uid = this.wxUser.uid
+                    let param = {
+                        info: JSON.stringify(info),
+                        error: e,
+                        system: JSON.stringify(wx.getSystemInfoSync())
+                    }
+                    api.error_report(param)
+                }
+            } else {
+                goods_id = this.goodsInfo.goods_id
+                let title = this.goodsInfo.goods_name
+                let img = this.goodsInfo.goods_thumbnail_url
+                path = "/pages/goodsdetail?goods_id=" + this.goodsInfo.goods_id + "&pid=" + this.wxUser.uid
+                share = {
+                    title: title,
+                    imageUrl: img,
+                    path: path
+                }
+            }
+            console.log('goods page share', share)
+            return share
+        }
+        drawImage(data) {
+            let s = this.rate
+            let that = this
+            let context = wepy.createCanvasContext("share");
+            context.clearRect(0, 0, 750 * this.rate, 1334 * this.rate)
+            context.drawImage(data.background, 0, 0, 750 * this.rate, 1334 * this.rate)
+            context.drawImage(data.goodsImg, 0, 0, 750 * s, 820 * s)
+            context.setFontSize(32 * s)
+            context.setFillStyle("#000")
+            context.setTextAlign("left")
+            let t = []
+            if (context.measureText(data.goods_name).width > 280) {
+                let str1 = "",
+                    str2 = "";
+                data.goods_name.split("").map(function(char) {
+                    context.measureText(str1).width <= 280 ? str1 += char : str2 += char
+                })
+                t.push(str1), t.push(str2);
+            } else {
+                t.push(data.goods_name)
+            }
+            t.forEach(function(value, key) {
+                0 == key ? context.fillText(value, 160 * s, 884 * s, 700 * s) : context.fillText(value, 30 * s, 934 * s, 700 * s);
+            })
+            context.setFontSize(38 * s)
+            context.setFillStyle("#fd4f42")
+            context.setTextAlign("center")
+            context.fillText("￥" + data.final_price, 658 * s, 1045 * s)
+            context.setFontSize(32 * s)
+            context.setFillStyle("#808080")
+            context.setTextAlign("center")
+            context.fillText("￥" + data.old_price, 90 * s, 1045 * s)
+            context.setFontSize(30 * s)
+            context.setFillStyle("#cfaa71")
+            context.setTextAlign("center")
+            context.fillText(data.coupon_discount, 394 * s, 1042 * s)
+            if (data.type == 'h5') {
+                context.drawImage(data.qrcode, 535 * s, 1120 * s, 180 * s, 180 * s)
+            } else {
+                context.drawImage(data.qrcode, 433 * s, 1085 * s, 220 * s, 220 * s)
+            }
+            context.draw(false, function() {
+                setTimeout(function() {
+                    that.downloadCanvas()
+                }, 1000)
+            })
+        }
+        async downloadCanvas() {
+            let response = await wepy.canvasToTempFilePath({
+                fileType: "jpg",
+                canvasId: "share",
+            })
+            let tempFilePath = response.tempFilePath
+            let saveResponse = await wepy.saveImageToPhotosAlbum({
+                filePath: tempFilePath
+            }).catch(e => {
+                console.log(e)
+                return false
+            })
+            if (saveResponse) {
+                wepy.previewImage({
+                    current: response.tempFilePath, // 当前显示图片的http链接
+                    urls: [response.tempFilePath]
+                })
+            }
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    .text-blod {
+        font-weight: 600;
+    }
+    .content {
+        padding-bottom: 160rpx;
+        overflow: hidden;
+
+        // 下架的view
+        .lower-shelf-view{
+            height: 50vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            .lower-shelf-view-box{
+                .lower-shelf-view-tips{
+                    color: #666;
+                    font-size: 30rpx;
+                }
+                .lower-shelf-view-btn{
+                    margin-top: 40rpx;
+                    font-size: 30rpx;
+                    background: none;
+                    color: #666;
+                    &::after{
+                        border: 1px solid #a936ff;
+                    }
+                }
+            }
+        }
+        // 正常的view
+        .tags {
+            box-sizing: border-box;
+            display: inline-block;
+            font-size: 24rpx;
+            color: #f17432;
+            background: #fff0e9;
+            border-radius: 5rpx;
+            padding: 0 10rpx;
+            margin-right: 10rpx;
+            line-height: 1.2rem;
+        }
+        .bannerSwiper {
+            border-top: 10rpx solid #eee;
+            width: 100%;
+            height: 750rpx;
+            .bannerImg {
+                width: 100%;
+                height: 100%;
+            }
+        }
+        .goodsName {
+            font-size: 30rpx;
+            line-height: 1.75;
+            padding: 10rpx 32rpx;
+        }
+        .money {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            line-height: 1;
+            padding: 10rpx 32rpx 30rpx;
+            overflow: hidden;
+            .left {
+                overflow: hidden;
+                .top {
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: center;
+                    overflow: hidden;
+                    margin-bottom: 10rpx;
+                    .priceAfter {
+                        color: #d84f49;
+                        font-size: 26rpx; // font-weight: bold;
+                        white-space: nowrap;
+                    }
+                    .priceBefore {
+                        color: #999;
+                        font-size: 22rpx;
+                        text-decoration: line-through;
+                        white-space: nowrap;
+                        margin: 0 20rpx;
+                    }
+                }
+                .bottom {
+                    color: #999;
+                    font-size: 26rpx; // font-weight: bold;
+                    white-space: nowrap;
+                    margin-top: 20rpx;
+                }
+            }
+            .right {
+                overflow: hidden;
+                .sold {
+                    color: #999;
+                    font-size: 22rpx;
+                    white-space: nowrap;
+                }
+                .favorite {
+                    display: flex;
+                    justify-content: flex-end;
+                    align-items: center;
+                    margin-top: 20rpx;
+                    overflow: hidden;
+                    .icon-heart {
+                        font-size: 30rpx;
+                        margin-right: 10rpx;
+                    }
+                    .icon-heart.Active {
+                        display: none;
+                        margin-right: 10rpx;
+                    }
+                    .name {
+                        font-size: 26rpx;
+                        color: #333
+                    }
+                    .name.active {
+                        color: #d84f49;
+                    }
+                }
+                .favorite.active {
+                    color: #d84f49;
+                    .icon-heart {
+                        display: none;
+                    }
+                    .icon-heart.Active {
+                        display: block;
+                    }
+                }
+            }
+        }
+        .goode-info-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            overflow: hidden;
+            margin-top: 10rpx;
+            padding: 10rpx 32rpx;
+            .single {
+                display: flex;
+                justify-content: flex-start;
+                align-items: center;
+                font-size: 24rpx;
+                overflow: hidden;
+                .t {
+                    color: #999;
+                }
+                .v {
+                    color: #d84f49;
+                    margin: 0 10rpx;
+                }
+                .u {
+                    color: #d84f49;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    width: 30rpx;
+                    height: 30rpx;
+                    line-height: 1;
+                    font-size: 20rpx;
+                    background-color: #f9e5e4;
+                    border-radius: 100%;
+                }
+            }
+        }
+        .couponInfo {
+            color: #fff;
+            margin-top: 20rpx;
+            padding: 0 32rpx;
+            overflow: hidden;
+            .box {
+                display: flex;
+                justify-content: flex-start;
+                align-items: center;
+                padding: 34rpx 0;
+                border-top: 1px dotted #dbdbdb;
+                text-align: left;
+            }
+            .couponBig {
+                position: relative;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16rpx 0;
+                background-color: #2f323b;
+                border-radius: 4px;
+                .t {
+                    width: 150rpx;
+                    height: 56rpx;
+                    line-height: 56rpx;
+                    text-align: center;
+                    font-size: 26rpx;
+                    border-right: 1px solid #fff;
+                    white-space: nowrap;
+                }
+                .right {
+                    text-align: center;
+                    padding: 0 40rpx;
+                    .v {
+                        font-size: 34rpx;
+                        white-space: nowrap;
+                    }
+                    .time {
+                        font-size: 18rpx;
+                        white-space: nowrap;
+                    }
+                }
+            }
+            .couponBig::before {
+                content: '';
+                position: absolute;
+                top: -4rpx;
+                left: 146rpx;
+                width: 10rpx;
+                height: 10rpx;
+                background-color: #fff;
+                border-radius: 100%;
+            }
+            .couponBig::after {
+                content: '';
+                position: absolute;
+                bottom: -4rpx;
+                left: 146rpx;
+                width: 10rpx;
+                height: 10rpx;
+                background-color: #fff;
+                border-radius: 100%;
+            }
+            .residue {
+                color: #999;
+                font-size: 28rpx;
+                line-height: 1;
+                margin-left: 30rpx;
+                overflow: hidden;
+                .v {
+                    margin-top: 20rpx;
+                }
+            }
+        }
+        .trait {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100rpx;
+            padding: 0 32rpx;
+            background-color: #fafafa;
+            overflow: hidden;
+            .single {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                overflow: hidden;
+                .icon {
+                    color: #cfaa71;
+                    font-size: 24rpx;
+                    margin-right: 10rpx;
+                }
+                .name {
+                    font-size: 24rpx;
+                }
+            }
+        }
+        .article {
+            overflow: hidden;
+            border-top: 10rpx solid #eee;
+            .title {
+                font-size: 30rpx;
+                padding: 20rpx 0;
+                margin: 0 32rpx;
+                border-bottom: 1px solid #eee;
+            }
+            .introduce {
+                color: #666;
+                font-size: 26rpx;
+                line-height: 1.6;
+                background: #eee;
+                padding: 20rpx;
+                margin: 0 32rpx;
+                margin-bottom: 20rpx;
+            }
+            .imgList {
+                padding: 0 32rpx;
+                overflow: hidden;
+            }
+            .img {
+                display: block;
+                width: 100%;
+            }
+        }
+        .operation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            z-index: 1;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100rpx;
+            line-height: 100rpx;
+            background-color: #fff;
+            overflow: hidden;
+            border-top: 1rpx solid #eee;
+            .operation-left {
+                display: flex;
+                align-items: center;
+                font-size: 30rpx;
+                .icon {
+                    font-size: 40rpx;
+                }
+                .home {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    flex-direction: column;
+                    width: 110rpx;
+                    line-height: 1;
+                    .name {
+                        font-size: 20rpx;
+                        margin-top: 10rpx;
+                        white-space: nowrap;
+                        overflow: hidden;
+                    }
+                }
+                .share {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    flex-direction: column;
+                    width: 105rpx;
+                    line-height: 1;
+                    border-left: 1px solid #dbdbdb;
+                    .name {
+                        font-size: 20rpx;
+                        margin-top: 10rpx;
+                        white-space: nowrap;
+                        overflow: hidden;
+                    }
+                }
+            }
+            .operation-right {
+                display: flex;
+                align-items: center;
+                flex-grow: 1;
+                .btn {
+                    flex: 1;
+                    height: 100rpx;
+                    line-height: 100rpx;
+                    font-size: 34rpx;
+                    border-radius: 0;
+                    letter-spacing: 10rpx;
+                    &::after {
+                        border-radius: 0;
+                    }
+                }
+            }
+        }
+        .storeInfo {
+            padding: 32rpx;
+            overflow: hidden;
+            .top {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                overflow: hidden;
+                .left {
+                    flex: 1;
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: center;
+                    margin-right: 50rpx;
+                    overflow: hidden;
+                    .img {
+                        width: 100rpx;
+                        height: 100rpx;
+                        border-radius: 100%;
+                        margin-right: 20rpx;
+                        border: 1px solid #dbdbdb;
+                    }
+                    .txt {
+                        flex: 1;
+                        display: flex;
+                        justify-content: flex-start;
+                        align-items: flex-start;
+                        flex-direction: column;
+                        line-height: 1;
+                        overflow: hidden;
+                        .name {
+                            width: 100%;
+                            display: flex;
+                            justify-content: flex-start;
+                            align-items: center;
+                            .mall_name {
+                                width: 220rpx;
+                                text-align: left;
+                                font-size: 30rpx;
+                                white-space: nowrap;
+                                text-overflow: ellipsis;
+                                overflow: hidden;
+                            }
+                            .mall_type {
+                                background: #2f323b;
+                                color: white;
+                                font-size: 24rpx;
+                                line-height: 1.3rem;
+                                padding: 0 10rpx;
+                                border-radius: 5rpx;
+                            }
+                        }
+                        .sum {
+                            color: #999;
+                            text-align: left;
+                            font-size: 24rpx;
+                            margin-top: 20rpx;
+                        }
+                    }
+                }
+                .goStore {
+                    width: 170rpx;
+                    height: 66rpx;
+                    line-height: 66rpx;
+                    text-align: center;
+                    font-size: 28rpx;
+                }
+            }
+        }
+        .similar {
+            overflow: hidden;
+            .title {
+                font-size: 36rpx;
+                font-weight: bold;
+                margin-top: 40rpx;
+                padding: 0 32rpx;
+                overflow: hidden;
+            }
+            .list {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                flex-wrap: wrap;
+                margin: 0 32rpx;
+                overflow: hidden;
+                background: #f4f3f8;
+            }
+        }
+    }
+    .shareDialog {
+        position: fixed;
+        z-index: 2;
+        top: 100%;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+    }
+    .shareDialog.show {
+        top: 0;
+    }
+    .shareDialog.show .content {
+        transform: translateX(0px);
+    }
+    .shareDialog .content {
+        position: absolute;
+        height: 600rpx;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 32rpx 32rpx 0 32rpx;
+        box-sizing: border-box;
+        background-color: #fff;
+        transition: all 0.3s ease;
+        transform: translateY(1000rpx);
+        overflow: hidden;
+    }
+    .shareDialog .content .close {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 90rpx;
+        height: 90rpx;
+        overflow: hidden;
+    }
+    .shareDialog .content .close .icon-close {
+        color: #000;
+        font-size: 32rpx;
+    }
+    .shareDialog .content .title {
+        font-size: 36rpx;
+        font-weight: bold;
+        line-height: 1;
+    }
+    .shareDialog .content .goodsInfo {
+        display: block;
+        color: #999;
+        font-size: 28rpx;
+        line-height: 1.5;
+        margin-top: 30rpx;
+        overflow: hidden;
+    }
+    .shareDialog .content .goodsInfo .item {
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    .shareDialog .content .goodsInfo .item.name {
+        white-space: normal;
+        line-height: 40rpx;
+        height: 80rpx;
+    }
+    .shareDialog .content .btns {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        margin-top: 24rpx;
+        border-top: 1px dotted #dbdbdb;
+        overflow: hidden;
+    }
+    .shareDialog .content .btns .btn {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 48.6%;
+        height: 110rpx;
+        margin-top: 20rpx;
+        background-color: #f5f5f7;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .shareDialog .content .btns .btn .icon {
+        width: 50rpx;
+        height: 50rpx;
+        margin-right: 20rpx;
+    }
+    .shareDialog .content .btns .btn .name {
+        color: #333;
+        font-size: 26rpx;
+    }
+</style>

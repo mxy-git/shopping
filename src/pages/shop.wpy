@@ -1,0 +1,455 @@
+<template>
+    <view class="container">
+        <view class="content">
+            <view class="header">
+                <view class="logo">
+                    <image src="{{storeInfo.mall_logo}}" />
+                </view>
+                <view class="mall_name">{{storeInfo.mall_name}}</view>
+                <view class="mall_tips">
+                    <text>{{storeInfo.sales_tip}}</text>
+                    <text class="split"></text>
+                    <text>{{storeInfo.mall_type}}</text>
+                </view>
+                <view class="mall_action">
+                    <button openType="share" data-share="1" class="mall_action_btn header-share"><text class="icon icon-share"></text>分享</button>
+                    <button @tap.stop='shopCollect' class="mall_action_btn header-collect">
+                        <text class="icon icon-praise {{collect?'collect':'uncollect'}}"></text>
+                        <text class="text {{collect?'collect':'uncollect'}}">{{collect?'已收藏':'收藏'}}</text>
+                    </button>
+                </view>
+            </view>
+
+            <view class="body">
+                <goodslist></goodslist>
+            </view>
+            <view class="footer">
+                <text class="go-home icon icon-home" @tap.stop="go_home">首页</text>
+                <button class="com-btn-1" @tap.stop='share_shop_btn'>分享店铺链接</button>
+            </view>
+        </view>
+
+        <view class="modal-cover" wx:if="{{show_share_modal}}">
+            <view class="modal-content">
+                <view class="modal-copy-data">
+                    <view class="firends-share">朋友圈分享</view>
+                    <view class="share-content">[拼多多]优选店铺-{{storeInfo.mall_name}},{{storeInfo.sales_tip}},点击链接立马购,{{share_url}}</view>
+                </view>
+                <view class="btn-view">
+                    <button class="modal-close com-btn-3" @tap.stop="modal_close">关闭</button>
+                    <button class="modal-copy com-btn-4" @tap.stop="modal_copy">复制</button>
+                </view>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from "../api/api.js"
+    import * as util from "../util/util.js"
+    import Goodslist from "../components/goodslist"
+    export default class Shop extends wepy.page {
+        config = {
+            navigationBarTitleText: '店铺详情',
+        }
+        components = {
+            goodslist:Goodslist,
+        }
+        data = {
+            wxUser:null,
+            mall_id: null,
+            merchant_type: '',
+            category_name: '',
+            storeGoodsList: [],
+            storeInfo: null,
+            page: 1,
+            has: true,
+            isLoading: false,
+            collect: false,
+            collecting:false, // 收藏中
+            share_url:"",
+            show_share_modal:false,
+        }
+        methods = {
+            goodsDetails(goods_id,event){
+                console.log(goods_id)
+                wepy.navigateTo({
+                    url: '/pages/goodsdetail?goods_id=' + goods_id
+                })
+            },
+            // 店铺收藏
+            async shopCollect(){
+                if(this.collecting == false) {
+                    this.collecting = true
+                    console.log(this.collect)
+                    if(this.collect == true){
+                        wepy.showLoading({
+                            title:'取消收藏中...'
+                        })
+                    }else{
+                        wepy.showLoading({
+                            title:'收藏店铺中...'
+                        })
+                    }
+                    var param = {
+                        mall_id:this.mall_id
+                    }
+
+                    let response = await api.collectionMallTigger(param)
+                    wepy.hideLoading()
+                    if(response.code === 200){
+                        if(this.collect === false){
+                            wepy.showToast({
+                                title:'收藏店铺成功'
+                            })
+                        }else{
+                            wepy.showToast({
+                                title:'取消收藏成功'
+                            })
+                        }
+                    }else{
+                        wepy.showToast({
+                            title: response.msg,
+                            icon: 'none'
+                        })
+                    }
+                    this.collecting = false
+                    this.collect = !this.collect
+                    this.$apply()
+                }
+            },
+
+            // 店铺链接分享按钮
+            async share_shop_btn(){
+                if(this.share_url){
+                    this.show_share_modal = true;
+                    this.$apply()
+                }else{
+                    let param = {
+                        mall_id: this.mall_id
+                    }
+                    let response = await api.mall_url_gen(param)
+                    if(response.code=== 200){
+                        this.share_url = response.data.url
+                        this.show_share_modal = true
+                        this.$apply()
+                    }else{
+                        wx.showModal({
+                            title: '提示',
+                            content: response.msg,
+                        })
+                    }
+                }
+            },
+
+            modal_close(){
+                this.show_share_modal = false
+                this.$apply()
+            },
+            modal_copy(){
+                let that = this
+                wx.setClipboardData({
+                    data: "[拼多多]优选店铺-"+ that.storeInfo.mall_name+","+ that.storeInfo.sales_tip + ",点击链接立马购," + that.share_url,
+                    success(res){
+                        console.log('copy success')
+                        that.show_share_modal = false
+                        that.$apply()
+                    }
+                })
+            },
+            go_home(){
+                wx.switchTab({
+                    url: '/pages/index'
+                })
+            }
+        }
+        async loadData() {
+            if (this.has === true && this.isLoading === false) {
+                let param = {
+                    mall_id: this.mall_id,
+                    page: this.page,
+                    role: this.wxUser.role
+                }
+                let res = await api.apiMallGoodsList(param)
+                if (res.code === 200) {
+                    this.merchant_type = res.data.merchant_type
+                    this.category_name = res.data.category_name
+                    this.$invoke('goodslist','add',res.data.list)
+                }
+                this.$apply()
+            }
+        }
+
+        // 获取店铺的基本信息
+        async getMallInfo(){
+            let param = {
+                mall_id: this.mall_id
+            }
+            let response = await api.getMallInfo(param)
+            if (response.code === 200) {
+                this.storeInfo = response.data
+                let sale_reg = /([0-9万\+]+)/;
+                let sale_reg_result = this.storeInfo.sales_tip.match(sale_reg)
+                console.log(sale_reg_result)
+                if(sale_reg_result && sale_reg_result[1]){
+                    this.storeInfo.sales_tip = '已拼'+sale_reg_result[1]+'件'
+                }else{
+                    this.storeInfo.sales_tip = ''
+                }
+            }
+            this.$apply()
+        }
+        async onLoad(options) {   
+            let backpage = encodeURIComponent('/pages/shop?' + util.serialize(options))
+            let res = await this.$parent.LoginCheck(backpage, 1)
+            if(res){
+                this.wxUser = res
+            }else{
+                return false
+            }
+            this.mall_id = options.mall_id
+            this.$invoke('goodslist','init',{
+                role:this.wxUser.role,
+                width: 360
+            })
+            this.getMallInfo()
+            this.getcollectionMallStatus()
+            this.loadData()
+            this.$apply()
+        }
+
+        async getcollectionMallStatus(){
+            let param = {
+                mall_id:this.mall_id
+            }
+            let collect_res = await api.collectionMallStatus(param)
+            if(collect_res){
+                console.log(collect_res)
+                if(collect_res.data.status == 1){
+                    this.collect = true
+                }else{
+                    this.collect = false
+                }
+                this.$apply()
+            }else{
+                console.log('获取收藏状态失败')
+            }
+        }
+
+        onShareAppMessage(res){
+            console.log(res)
+            let share = {}
+            if(res.target){
+                if(res.target.dataset.share){
+                    share.path ="/pages/shop?mall_id="+this.mall_id+"&pid="+this.wxUser.uid
+                    share.title = "[拼多多] "+this.storeInfo.mall_name+' - 店铺分享'
+                }else{
+                    let item = res.target.dataset.item
+                    share.path = "/pages/goodsdetail?goods_id=" + item.goods_id + "&pid=" + this.wxUser.uid
+                    share.title = "[拼多多] 优惠券" + item.coupon_discount + '元' + ',原价￥' + item.old_price + " 券后价￥" + item.final_price
+                    share.imageUrl = item.goods_thumbnail_url
+                }
+            }else{
+                share.path ="/pages/shop?mall_id="+this.mall_id+"&pid="+this.wxUser.uid
+                share.title = "[拼多多] "+this.storeInfo.mall_name+' - 店铺分享'
+            }
+
+            console.log(share)
+            return share
+        }
+    }
+</script>
+
+<style>
+    page{
+        height: 100%;
+        width: 100%;
+    }
+</style>
+<style lang="less" scoped>
+    .container{
+        background: linear-gradient(to right,#ebd9ab 0,#ebaf5b 100%);
+        width: 100%;
+        padding-top: 100rpx;
+        .content{
+            background: white;
+            width: 100%;
+            border-top-left-radius: 20rpx;
+            border-top-right-radius: 20rpx;
+
+            .header{
+                padding-bottom: 20rpx;
+                border-bottom: 10rpx solid #eee;
+                .logo{
+                    width: 120rpx;
+                    height: 120rpx;
+                    margin: 0 auto;
+                    margin-top: -60rpx;
+                    margin-bottom: 10rpx;
+                    image{
+                        height: 100%;
+                        width: 100%;
+                        border-radius: 10rpx;
+                        border:1px solid white;
+                    }
+                }
+                .mall_name{
+                    font-size: 30rpx;
+                    font-weight: bold;
+                    text-align: center;
+                    .mallt-type{
+                        margin-left: 10rpx;
+                        font-size: 24rpx;
+                        border-radius: 5rpx;
+                        background: linear-gradient(145deg,#ebd9ab 50%,#e7c89c 50%);
+                        color: #56300c;
+                        padding: 5rpx 10rpx;
+                    }
+                }
+                .mall_tips{
+                    margin: 10rpx 0;
+                    text-align: center;
+                    font-size: 22rpx;
+                    color: #666;
+                    .split{
+                        display: inline-block;
+                        width: 2rpx;
+                        height: 20rpx;
+                        background: #eee;
+                        margin: 0 15rpx;
+                    }
+                }
+                .mall_action{
+                    text-align: center;
+                    .mall_action_btn{
+                        border:#dd3b30 1px solid ;
+                        display: inline-block;
+                        font-size: 24rpx;
+                        padding: 10rpx 25rpx;
+                        border-radius: 5rpx;
+                        color:#dd3b30;
+                        &:first-child{
+                            margin-right: 30rpx;
+                        }
+                        .icon{
+                            font-size: 26rpx;
+                            font-weight: bold;
+                            margin-right: 10rpx;
+                        }
+                        .icon.collect{
+                            color:#dd3b30;
+                        }
+                        .icon.uncollect{
+                            color:#666;
+                        }
+
+                        .text.collect{
+                            color:#dd3b30;
+                        }
+                        .text.uncollect{
+                            color:#666;
+                        }
+                    }
+                    button{
+                        line-height: 1;
+                        background: white;
+                        &::after{
+                            border:none;
+                        }
+                    }
+                }
+            }
+
+            .body{
+                margin-bottom: 92rpx;
+                background: #f4f3f8;
+            }
+
+            .footer{
+                display: flex;
+                background: white;
+                z-index: 2;
+                width: 100%;
+                position: fixed;
+                
+                flex-direction: row;
+                align-items: center;
+                bottom: 0;
+                left: 0;
+                .go-home{
+                    height: 90rpx;
+                    line-height: 90rpx;
+                    padding: 0 20rpx;
+                    font-size: 24rpx;
+                }
+                button{
+                    height: 90rpx;
+                    line-height: 90rpx;
+                    border-radius: 0;
+                    border: none;
+                    flex-grow: 1;
+                    background: linear-gradient(to right,#ebd9ab 0,#ebaf5b 100%);
+                    &::after {
+                        border-radius: 0;
+                    }
+                    font-size: 30rpx;
+                }
+            }
+        }
+
+        .modal-cover{
+            position: fixed;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            .modal-content{
+                background: white;
+                width: 500rpx;
+                padding: 20rpx;
+                border-radius: 10rpx;
+                position: relative;
+                display: flex;
+                justify-content: space-between;
+                flex-direction: column;
+
+                .firends-share{
+                    margin: 40rpx 0;
+                    font-style: italic;
+                    color: #a936ff;
+                    font-weight: bold;
+                    text-align: center;
+                }
+                .share-content{
+                    position: relative;
+                    font-size: 24rpx;
+                    color: #666;
+                    border: 1px solid #eee;
+                    display: inline-block;
+                    padding: 20rpx;
+                    width: 460rpx;
+                    overflow: hidden;
+                    word-break: break-all;
+                }
+                .btn-view{
+                    margin-top: 30rpx;
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: space-between;
+                    align-items: center;
+                    button{
+                        line-height: 2;
+                        font-size: 26rpx;
+                    }
+                }
+            }
+        }
+    }
+</style>

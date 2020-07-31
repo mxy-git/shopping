@@ -1,0 +1,755 @@
+<style lang="less" scoped>
+    @keyframes my-rate {
+        0% {
+            transform: rotateY(0deg);
+            -ms-transform: rotateY(0deg);
+            -webkit-transform: rotateY(0deg);
+        }
+        25% {
+            transform: rotateY(0deg);
+            -ms-transform: rotateY(-0deg);
+            -webkit-transform: rotateY(-0deg);
+        }
+        50% {
+            transform: rotateY(-360deg);
+            -ms-transform: rotateY(-360deg);
+            -webkit-transform: rotateY(-360deg);
+        }
+        100% {
+            transform: rotateY(-360deg);
+            -ms-transform: rotateY(-360deg);
+            -webkit-transform: rotateY(-360deg);
+        }
+    }
+    #findCa {
+        padding-top: 80rpx;
+        overflow: hidden;
+        .header {
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 0 40rpx 0;
+            background-color: #fff;
+            border-bottom: 1rpx solid #f7f7ff;
+            .tab {
+                display: flex;
+                justify-content: flex-start;
+                align-items: flex-end;
+                .single {
+                    color: #999;
+                    font-size: 38rpx;
+                    height: 70rpx;
+                    display: flex;
+                    justify-content: flex-end;
+                    align-items: flex-end;
+                    line-height: 1;
+                    margin-right: 80rpx;
+                    white-space: nowrap;
+                    transition: all 0.3s ease;
+                    overflow: hidden;
+                }
+                .single.active {
+                    color: #000;
+                    transform: scale(1.58) translate(10rpx, -12rpx);
+                }
+            }
+            .filter {
+                position: relative;
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+                padding-bottom: 20rpx;
+                .single {
+                    color: #999;
+                    height: 60rpx;
+                    line-height: 60rpx;
+                    font-size: 32rpx;
+                    text-align: center;
+                    white-space: nowrap;
+                    position: relative;
+                    font-weight: bold;
+                }
+                .single.active {
+                    position: relative;
+                    color: #cfaa71;
+                    border-bottom: 4rpx solid #cfaa71;
+                }
+            }
+        }
+        .list {
+            overflow: hidden;
+            .item {
+                padding: 30rpx 0;
+                border-bottom: 1px solid #f7f7f7;
+                overflow: hidden;
+            }
+            .item:last-child {
+                border-bottom: none;
+            }
+            .top {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0 32rpx;
+                overflow: hidden;
+                .userInfo {
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: center;
+                    overflow: hidden;
+                    .icon {
+                        width: 60rpx;
+                        height: 60rpx;
+                        border-radius: 100%;
+                        margin-right: 20rpx;
+                    }
+                    .name {
+                        flex: 1;
+                        color: #000;
+                        font-weight: bold;
+                        font-size: 28rpx;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        overflow: hidden;
+                    }
+                }
+                .time {
+                    color: #999;
+                    font-size: 26rpx;
+                }
+                .status {
+                    color: #d84f49;
+                    height: 36rpx;
+                    line-height: 36rpx;
+                    font-size: 24rpx;
+                    padding: 0 10rpx;
+                    border-radius: 4px;
+                    border: 1px solid #d84f49;
+                }
+            }
+            .goodsInfo {
+                padding: 30rpx 32rpx 0 100rpx;
+                overflow: hidden;
+                .info {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 15rpx;
+                    background-color: #f6f6f6;
+                    border-radius: 4px;
+                    overflow: hidden;
+                }
+                .img {
+                    width: 97rpx;
+                    height: 97rpx;
+                    margin-right: 30rpx;
+                }
+                .group {
+                    flex: 1;
+                    overflow: hidden;
+                    .name {
+                        color: #666;
+                        font-size: 26rpx;
+                        line-height: 1;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        overflow: hidden;
+                    }
+                    .more {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        line-height: 1;
+                        margin-top: 15rpx;
+                        font-size: 26rpx;
+                        overflow: hidden;
+                        .price {
+                            color: #000;
+                        }
+                        .earn {
+                            border-radius: 5rpx;
+                            color: white;
+                            background: #cfaa71;
+                            padding: 5rpx 10rpx;
+                            .rate {
+                                display: inline-block;
+                                animation: my-rate 4s infinite linear;
+                                background: white;
+                                border-radius: 50%;
+                                padding: 4rpx 10rpx;
+                                color: #cfaa71;
+                                margin-right: 7rpx;
+                                font-size: 22rpx;
+                                font-weight: bold;
+                            }
+                        }
+                    }
+                }
+            }
+            .praise {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20rpx 32rpx 20rpx 100rpx;
+                overflow: hidden;
+                .latest {
+                    flex: 1;
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: center;
+                    overflow: hidden;
+                    .user {
+                        display: flex;
+                        justify-content: flex-start;
+                        align-items: center;
+                        .img {
+                            width: 40rpx;
+                            height: 40rpx;
+                            border-radius: 100%;
+                            margin-left: -10rpx;
+                            &:first-child {
+                                margin-left: 0;
+                            }
+                        }
+                    }
+                    .sum {
+                        margin-left: 10rpx;
+                        color: #666;
+                        font-size: 26rpx;
+                        white-space: nowrap;
+                    }
+                }
+                .praiseBtn {
+                    display: flex;
+                    justify-content: flex-end;
+                    align-items: center;
+                    color: #666;
+                    width: 100rpx;
+                    height: 100rpx;
+                    background: none;
+                    .icon-praise {
+                        font-size: 30rpx;
+                        margin-right: 6rpx;
+                    }
+                    .n {
+                        font-size: 26rpx;
+                    }
+                }
+                .praiseBtn.active {
+                    color: #cfaa71;
+                }
+            }
+            .bottom {
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                padding: 0 32rpx 0 100rpx;
+                overflow: hidden;
+                .time {
+                    color: #999;
+                    font-size: 26rpx;
+                }
+                .btn {
+                    display: flex;
+                    justify-content: flex-end;
+                    align-items: center;
+                    .delete {
+                        color: #999;
+                        width: content;
+                        padding: 0;
+                        margin-top: 20rpx;
+                        font-size: 28rpx;
+                        background: none;
+                    }
+                }
+                .btn button {
+                    height: 60rpx;
+                    line-height: 60rpx;
+                    font-size: 26rpx;
+                    margin-left: 20rpx;
+                }
+            }
+        }
+        .findInfo {
+            padding: 10rpx 32rpx 0 100rpx;
+            overflow: hidden;
+            .abstract {
+                color: #2e2e2e;
+                display: block;
+                font-size: 26rpx;
+                line-height: 40rpx;
+                overflow: hidden;
+            }
+            .imgList {
+                overflow: hidden;
+                .img {
+                    width: 31.73333%;
+                    margin-right: 2.4%;
+                    margin-right: 1.6%;
+                    float: left;
+                    height: 180rpx;
+                    margin-top: 20rpx;
+                    border-radius: 4px;
+                }
+                .img:nth-child(3n) {
+                    margin-right: 0px;
+                }
+            }
+        }
+        .publish {
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            bottom: 30rpx;
+            width: 300rpx;
+            height: 80rpx;
+            line-height: 80rpx;
+            margin-left: -150rpx;
+            border-radius: 80rpx;
+            opacity: 0.8;
+        }
+    }
+</style>
+
+<template>
+    <view id="findCa">
+        <view class="header" style="padding-bottom: 0rpx;">
+            <view class="filter">
+                <block wx:for="{{menus}}" wx:key="index">
+                    <block wx:if="{{index > 1}}">
+                        <block wx:if="{{wxUser.role > 0}}">
+                            <view @tap="filterChange('{{index}}','{{item.type}}')" class="single {{filterChecked==index?'active':''}}">
+                                {{item.name}}
+                            </view>
+                        </block>
+                    </block>
+                    <block wx:else>
+                        <view @tap="filterChange('{{index}}','{{item.type}}')" class="single {{filterChecked==index?'active':''}}">
+                            {{item.name}}
+                        </view>
+                    </block>
+                </block>
+            </view>
+        </view>
+        <view class="list">
+            <view class="item" wx:for="{{list}}" wx:key="index">
+                <view class="top">
+                    <view class="userInfo">
+                        <image lazy-load="true" class="icon" mode="scaleToFill" src="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/logo-1.png" />
+                        <view class="name">小编推荐</view>
+                    </view>
+                    <view class="time" >{{item.addtime}}</view>
+                    <!-- <view class="time" wx:if="{{filterChecked==1}}">下载量:{{item.download}}</view> -->
+                </view>
+                <view class="findInfo">
+                    <text selectable class="abstract">{{item.content}}</text>
+                    <view class="imgList">
+                        <image lazy-load="true" @tap="previewImg('{{img}}','{{index}}')" class="img" mode="aspectFill" src="{{img}}" wx:for="{{item.imgs}}" wx:for-item="img" wx:for-index="indexs" wx:key='key' />
+                    </view>
+                </view>
+                <block wx:if="{{filterChecked==0||filterChecked==1}}">
+                    <view @tap="goodsDetails('{{item.goods_id}}')" class="goodsInfo">
+                        <view class="info">
+                            <image lazy-load="true" class="img" mode="aspectFill" src="{{item.goods_thumbnail_url}}" />
+                            <view class="group">
+                                <view class="name">{{item.goods_name}}</view>
+                                <view class="more">
+                                    <view class="price">进货价{{item.final_price}}元</view>
+                                    <!-- <block wx:if="{{wxUser.role>0}}">
+                                        <view class="earn"><text class="rate">¥</text>{{item.commission}}<text style="margin-left:5rpx;">赚</text></view>
+                                    </block>
+                                    <block wx:else>
+                                        <view class="earn"><text class="rate">¥</text>{{item.sheng2}}<text style="margin-left:5rpx;">券</text></view>
+                                    </block> -->
+                                </view>
+                            </view>
+                        </view>
+                    </view>
+                </block>
+                <view class="praise" wx:if="{{item.share_count>0}}">
+                    <view class="latest">
+                        <view class="user">
+                            <image lazy-load="true" class="img" mode="scaleToFill" src="{{img}}" wx:if="{{index<3}}" wx:for="{{item.avatarurl_share}}" wx:for-item="img" wx:key="index" />
+                        </view>
+                        <view class="sum" wx:if="{{item.share_count>0}}">等{{item.share_count}}人已分享</view>
+                    </view>
+                </view>
+                <view class="bottom">
+                    <view class="btn">
+                        <block wx:if="{{filterChecked==0 || filterChecked==1}}">
+                            <!-- <button @tap="shareImg('{{index}}')" class="com-btn-2 save">一键保存</button> -->
+                            <button @tap="shareText('{{index}}')" class="com-btn-3 share" openType="share" data-item="{{item}}">分享进货</button>
+                        </block>
+                        <button style="margin-top:20rpx;" @tap="copySave('{{index}}')" class="com-btn-3 share" wx:if="{{filterChecked>1}}" data-item="{{item}}">分享进货</button>
+                    </view>
+                </view>
+            </view>
+        </view>
+        <nomore hidden="{{has}}"></nomore>
+        <canvas canvasId="share" style="position: fixed; z-index: -1; top:0; left:-200vw; width:750rpx; height:1334rpx;"></canvas>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from "../api/api.js";
+    import * as util from "../util/util.js"
+    import config from "../config.js"
+    import Nomore from "../components/nomore"
+    var shareIds = []
+    export default class Goodsdetail extends wepy.page {
+        config = {
+            navigationBarTitleText: '发现好货',
+        }
+        components = {
+            nomore: Nomore
+        }
+        data = {
+            wxUser: null,
+            rate: 0,
+            imgHost: config.imgHost,
+            share: null,
+            menus: [{
+                    name: '推荐',
+                    type: 1
+                },
+                {
+                    name: '排行',
+                    type: 1
+                },
+                // {
+                //     name: '素材',
+                //     type: 2
+                // },
+                // {
+                //     name: '新手',
+                //     type: 3
+                // }
+            ],
+            list: [],
+            filterChecked: 0,
+            page: 1,
+            limit: 10,
+            has: true,
+            isLoading: false
+        }
+        drawImage(data) {
+            console.log('draw data')
+            let s = this.rate
+            let that = this
+            let context = wepy.createCanvasContext("share");
+            context.clearRect(0, 0, 750 * this.rate, 1334 * this.rate)
+            context.drawImage(data.background, 0, 0, 750 * this.rate, 1334 * this.rate)
+            context.drawImage(data.goodsImg, 0, 0, 750 * s, 820 * s)
+            context.setFontSize(32 * s)
+            context.setFillStyle("#000")
+            context.setTextAlign("left")
+            let t = []
+            if (context.measureText(data.goods_name).width > 300) {
+                let str1 = "",
+                    str2 = "";
+                data.goods_name.split("").map(function(char) {
+                    context.measureText(str1).width <= 300 ? str1 += char : str2 += char
+                })
+                t.push(str1), t.push(str2);
+            } else {
+                t.push(data.goods_name)
+            }
+            t.forEach(function(value, key) {
+                0 == key ? context.fillText(value, 160 * s, 884 * s, 700 * s) : context.fillText(value, 30 * s, 934 * s, 700 * s);
+            })
+            console.log('draw data 2', data)
+            context.setFontSize(38 * s)
+            context.setFillStyle("#fd4f42")
+            context.setTextAlign("center")
+            context.fillText("￥" + data.final_price, 658 * s, 1045 * s)
+            context.setFontSize(32 * s)
+            context.setFillStyle("#808080")
+            context.setTextAlign("center")
+            context.fillText("￥" + data.old_price, 90 * s, 1045 * s)
+            context.setFontSize(30 * s)
+            context.setFillStyle("#cfaa71")
+            context.setTextAlign("center")
+            context.fillText(data.coupon_discount, 394 * s, 1042 * s),
+                console.log('s', s, 1126 * s)
+            context.drawImage(data.qrcode, 535 * s, 1120 * s, 180 * s, 180 * s)
+            context.draw(false, function() {
+                setTimeout(function() {
+                    that.downloadCanvas()
+                }, 1000)
+            })
+        }
+        async downloadCanvas() {
+            console.log('download canvas')
+            let response = await wepy.canvasToTempFilePath({
+                fileType: "jpg",
+                canvasId: "share",
+            })
+            let tempFilePath = response.tempFilePath
+            console.log(response.tempFilePath)
+            let saveResponse = await wepy.saveImageToPhotosAlbum({
+                filePath: tempFilePath
+            }).catch(err => {
+                return false
+            })
+            console.log(saveResponse)
+            if (saveResponse) {
+                wepy.previewImage({
+                    current: response.tempFilePath, // 当前显示图片的http链接
+                    urls: [response.tempFilePath]
+                })
+            }
+        }
+        methods = {
+            filterChange(index, type, event) {
+                this.filterChecked = index
+                this.list = []
+                this.page = 1
+                this.has = true
+                this.$apply()
+                this.loadData()
+            },
+            goodsDetails(goods_id, event) {
+                wepy.navigateTo({
+                    url: '/pages/goodsdetail?goods_id=' + goods_id
+                })
+            },
+            previewImg(url, index, event) {
+                console.log(url, index);
+                wepy.previewImage({
+                    current: url, // 当前显示图片的http链接
+                    urls: this.list[index]['imgs'] // 需要预览的图片http链接列表
+                })
+            },
+            shareText(index, event) {
+                let info = this.list[index]
+                let param = {
+                    id: info.id
+                }
+                api.discoverShare(param).then((res) => {
+                    if (res.code === 200 && res.data.status === 1) {
+                        let length = this.list[index].avatarurl_share.length
+                        if (length < 3) {
+                            this.list[index].avatarurl_share.unshift(this.wxUser.avatarurl)
+                        } else {
+                            this.list[index].avatarurl_share.pop()
+                            this.list[index].avatarurl_share.unshift(this.wxUser.avatarurl)
+                        }
+                        this.list[index].share_count++
+                            this.$apply()
+                    }
+                })
+            },
+            async shareImg(index, event) {
+                let info = this.list[index]
+                let param = {
+                    id: info.id
+                }
+                api.discoverShare(param).then((res) => {
+                    if (res.code === 200 && res.data.status === 1) {
+                        let length = this.list[index].avatarurl_share.length
+                        if (length < 3) {
+                            this.list[index].avatarurl_share.unshift(this.wxUser.avatarurl)
+                        } else {
+                            this.list[index].avatarurl_share.pop()
+                            this.list[index].avatarurl_share.unshift(this.wxUser.avatarurl)
+                        }
+                        this.list[index].share_count++
+                            this.$apply()
+                    }
+                })
+                let ret = await util.getAlbumInfo()
+                if (ret) {
+                    let info = this.list[index]
+                    console.log('goods info ', info)
+                    // 1 先复制内容
+                    let clip = {
+                        data: info['content']
+                    }
+                    let clipRes = await wepy.setClipboardData(clip)
+                    if (clipRes) {
+                        wepy.showToast({
+                            title: '内容已复制',
+                            icon: 'success'
+                        })
+                    }
+                    wepy.hideToast()
+                    wepy.showLoading({
+                        title: '图片保存中'
+                    })
+                    // 下载所有的图片,并保存到相册中
+                    info.imgs.forEach(async function(v) {
+                        console.log('download', v)
+                        let res = await wepy.downloadFile({
+                            url: v
+                        })
+                        if (res.statusCode === 200) {
+                            let response = await wepy.saveImageToPhotosAlbum({
+                                filePath: res.tempFilePath
+                            }).catch(err => {
+                                return false
+                            })
+                            if (!response) {
+                                return false
+                            }
+                        }
+                    })
+                    // 合成图片
+                    let download = await wepy.downloadFile({
+                        url: info['imgs'][0]
+                    })
+                    console.log('download', download)
+                    let drawData = info
+                    drawData.goodsImg = download.tempFilePath
+                    // 获取拼多多的短网址
+                    drawData.background = "../assets/share-backgroumd.png"
+                    // 下载h5的二维码
+                    let h5 = await api.getShareH5Qrcode({
+                        goods_id: info.goods_id
+                    })
+                    if (h5.code === 200) {
+                        let qrcode = await wepy.downloadFile({
+                            url: h5.data.qrcode
+                        })
+                        drawData.qrcode = qrcode.tempFilePath
+                        console.log('合成数据', drawData)
+                        //绘制
+                        wepy.hideLoading()
+                        this.drawImage(drawData)
+                    } else {
+                        console.log('下载二维码失败')
+                    }
+                }
+            },
+            async copySave(index, event) {
+                // 1 先复制内容
+                let info = this.list[index]
+                let clip = {
+                    data: info['content']
+                }
+                let clipRes = await wepy.setClipboardData(clip)
+                if (clipRes) {
+                    wepy.showToast({
+                        title: '内容已复制',
+                        icon: 'none'
+                    })
+                }
+                // 下载保存图片
+                let ret = await util.getAlbumInfo()
+                if (ret) {
+                    wepy.showLoading({
+                        title: '图片保存中..'
+                    })
+                    info.imgs.forEach(async function(v) {
+                        console.log('download', v)
+                        let res = await wepy.downloadFile({
+                            url: v
+                        })
+                        if (res.statusCode === 200) {
+                            let response = await wepy.saveImageToPhotosAlbum({
+                                filePath: res.tempFilePath
+                            }).catch(err => {
+                                return false
+                            })
+                            if (!response) {
+                                wepy.hideLoading()
+                                return false
+                            }
+                        }
+                    })
+                    wepy.hideLoading()
+                } else {
+                    setTimeout(function() {
+                        wepy.showToast({
+                            title: '图片复制失败,请手动保存',
+                            icon: 'none'
+                        })
+                    }, 1000)
+                }
+            }
+        }
+        async loadData() {
+            if (this.isLoading === false && this.has === true) {
+                let param = {}
+                if (this.filterChecked === 1) {
+                    param = {
+                        type: this.menus[this.filterChecked].type,
+                        page: this.page,
+                        is_order: 1
+                    }
+                } else {
+                    param = {
+                        type: this.menus[this.filterChecked].type,
+                        page: this.page
+                    }
+                }
+                wepy.showLoading()
+                let response = await api.apiGetDiscover(param)
+                if (response.code === 200) {
+                    if (response.data.length === 0 || response.data.length < this.limit) {
+                        this.has = false
+                    }
+                    
+                    for (let i of response.data) {
+                        if(this.filterChecked<2){
+                            i.sheng = (i.coupon_discount + i.commission).toFixed(2)
+                            i.sheng2 = i.coupon_discount.toFixed(2) // role = 0 的省钱
+                        }
+                        
+                        this.list.push(i)
+                    }
+                    this.page++
+                }
+                this.isLoading = false
+                wepy.hideLoading()
+                this.$apply()
+            }
+        }
+        async defaultShare() {
+            let response = await api.getShare()
+            if (response.code === 200) {
+                this.share = response.data
+                this.$apply()
+            }
+        }
+        async onLoad(options) {
+            let backpage = encodeURIComponent('/pages/discover?' + util.serialize(options));
+            this.wxUser = await this.$parent.LoginCheck(backpage, 2)
+            let system_info = wepy.getSystemInfoSync()
+            this.rate = system_info.windowWidth / 750
+            this.defaultShare()
+            this.$apply()
+            this.loadData()
+        }
+        onReachBottom() {
+            this.loadData()
+        }
+        onShareAppMessage(res) {
+            if (res.target) {
+                let item = res.target.dataset.item
+                let title = item.goods_name
+                let path = "/pages/goodsdetail?goods_id=" + item['goods_id'] + '&pid=' + this.wxUser.uid
+                let img = item.goods_thumbnail_url
+                let share = {
+                    title: title,
+                    imageUrl: img,
+                    path: path,
+                    color: '#000000'
+                }
+                console.log('share content', share)
+                return share
+            } else {
+                let path = '/pages/index?pid=' + this.wxUser.uid
+                let share = {
+                    title: this.share.title,
+                    imageUrl: this.share.image,
+                    path: path
+                }
+                console.log('share content', share)
+                return share
+            }
+        }
+    }
+</script>

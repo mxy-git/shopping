@@ -1,0 +1,146 @@
+<style lang="less" scoped>
+    .content{
+        background-color: #f5f5f5;
+        padding: 80rpx 0 0 0;
+        overflow: hidden;
+
+        .header{
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 32rpx 32rpx 32rpx;
+            background-color: #fff;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .list{
+            background: white;
+            .list-item{
+                padding: 20rpx 32rpx;
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 1px solid #eee;
+                margin-top: 10rpx;
+                
+
+                .item-left{
+                    flex-grow: 1;
+                    width: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    width: 400rpx;
+                    padding: 20rpx auto;
+                    justify-content: space-between;
+
+                    .title{
+                        height: 80rpx;
+                        line-height: 40rpx;
+                        font-size: 28rpx;
+                        overflow: hidden;
+                    }
+
+                    .time{
+                        color: #999;
+                        font-size: 24rpx;
+                        margin: 10rpx 0 20rpx 0;
+                    }
+                    
+                }
+
+                .item-right{
+                    overflow: hidden;
+                    image{
+                        width: 240rpx;
+                        height: 140rpx;
+                        margin-left: 20rpx;
+                        border-radius: 4rpx;
+                    }
+                }
+            }
+        }
+    }
+</style>
+
+<template>
+    <view class="content">
+         <view class="header">拼客头条</view>
+         <view class="list" >
+             <view @tap="topDetail('{{item.id}}')" class="list-item" wx:for="{{msgList}}" wx:key='index'>
+                 <view class="item-left">
+                     <view class="title">{{item['title']}}</view>
+                     <view class="time">{{item['addtime']}}</view>
+                 </view>
+                 <view class="item-right">
+                     <image  src="http://www.wxappclub.com/assets/imgs/js.jpg" />  
+                 </view>
+             </view>
+         </view>
+    </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import * as api from '../api/api.js'
+export default  class Toplist extends wepy.page{
+    config = {
+        navigationBarTitleText: '',
+    }
+
+    data = {
+        page: 1,
+        limit: 10,
+        has: true,
+        isLoading: false,
+        msgList: []
+    }
+
+    methods = {
+        topDetail(id,event) {
+            wepy.navigateTo({
+                url: "/pages/topdetail?id=" + id
+            });
+        }
+    }
+
+     async loadData() {
+        if(this.isLoading === false && this.has) {
+            this.isLoading = true
+            this.$apply();
+
+            wepy.showLoading()
+            let data = await api.apiDknewsList({page:this.page})
+            wepy.hideLoading()
+
+            console.log('apiDknews message list', data)
+            if (data.code === 200) {
+                for(let i of data.data) {
+                    this.msgList.push(i)
+                }
+                if(data.data.length < this.limit){
+                    this.has = false;
+                }
+                this.page++
+                this.isLoading = false
+                this.$apply()
+            }
+        }else{
+            return true;
+        }
+    }
+
+    onShow() {
+        this.loadData()
+    }
+
+    onReachBottom() {
+        console.log('reach')
+        this.loadData()
+    }
+
+    onLoad() {}
+}
+</script>

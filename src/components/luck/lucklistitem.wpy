@@ -1,0 +1,109 @@
+<template>
+    <view class="item" @tap.stop="luckdetail('{{item.id}}')">
+        <image src="{{item.image}}" mode="scaleToFill" />
+        <view class="item-body">
+            <view class="goods">奖品 : {{item.goods_name}}</view>
+            <view class="item-footer">
+                <view class="rule"><text class="{{item.status == 1 ? 'in':'out'}}">{{item.status == 1 ? "进行中":'已结束'}}</text>{{item.rule}}</view>
+                <button class="share-btn" open-type='share' @tap.stop="shareFriends" id="{{item.id}}" data-item="{{item}}">分享好友</button>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    export default class Lucklistitem extends wepy.component {
+        methods = {
+            luckdetail(id){
+                wepy.navigateTo({
+                    url: '/pages/luck?id=' + id
+                })
+            },
+            shareFriends(){
+                return false;
+            }
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    .item:last-child {
+        margin-bottom: 0;
+    }
+    .item:first-child {
+        margin-top: 2px;
+    }
+    .item {
+        background: white;
+        margin: 10rpx 0;
+        margin-bottom: 40rpx;
+        border-radius: 5rpx;
+        border: 1rpx solid #dedede;
+        image {
+            width: 100%;
+            height: 340rpx;
+            border-top-left-radius: 5rpx;
+            border-top-right-radius: 5rpx;
+            display: block;
+        }
+        .item-body {
+            border-left: 1rpx solid #eee;
+            border-right: 1rpx solid #eee;
+            border-bottom: 1rpx solid #eee;
+            padding-bottom: 40rpx;
+            border-bottom-left-radius: 5rpx;
+            border-bottom-right-radius: 5rpx;
+        }
+        .goods {
+            color: #cb3f30;
+            font-size: 28rpx;
+            padding: 20rpx 20rpx;
+            font-weight: 500;
+            background: white;
+        }
+        .item-footer {
+            background: white;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: flex-start;
+            .share-btn{
+                font-size: 20rpx;
+                color: #ffffff;
+                background: #d24939;
+                margin-right: 20rpx;
+                line-height: 2.3;
+                min-width: 150rpx;
+            }
+            button.share-btn::after{
+                border: none;
+            }
+            .rule {
+                flex-grow: 1;
+                color: #6c6c6c;
+                font-size: 30rpx;
+                padding-left: 20rpx;
+                font-size: 24rpx;
+            }
+            .in {
+                display: inline-block;
+                background: #d24939;
+                padding: 5rpx 20rpx;
+                font-size: 24rpx;
+                border-radius: 5rpx;
+                color: white;
+                margin-right: 20rpx;
+            }
+            .out {
+                display: inline-block;
+                background: #6c6c6c;
+                padding: 5rpx 10rpx;
+                font-size: 24rpx;
+                border-radius: 5rpx;
+                color: white;
+                margin-right: 20rpx;
+            }
+        }
+    }
+</style>

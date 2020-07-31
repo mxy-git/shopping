@@ -1,0 +1,100 @@
+<template>
+    <view class="components-box-userlist">
+        <view class="total" wx:if="{{total_number}}">{{total_number}} 位参与者</view>
+        <view class="userlist">
+            <block wx:for="{{userlist}}" wx:key="index">
+                <image class="avatar" src="{{item.avatarurl}}"  mode='withFix'></image>
+            </block>
+        </view>
+        <view class="load-more" wx:if="{{has}}">加载更多</view>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from '../../api/api.js'
+    export default class Userlist extends wepy.component {
+        data = {
+            userlist: [],
+            total_number: '',
+            page: 1,
+            has: true,
+            isLoad: false,
+            limit: 100
+        }
+        init(){
+            this.getJoinCount()
+            this.getJoinUser()
+        }
+        async getJoinCount() {
+            let param = {
+                id: this.$parent.id
+            }
+            let response = await api.luckJoinCount(param)
+            if (response.code === 200) {
+                this.total_number = response.data.total
+                this.$apply()
+            }
+        }
+        async getJoinUser() {
+            if(this.has === true && this.isLoad === false){
+                this.isLoad = true
+                wepy.showLoading({
+                  mask: true, //显示透明蒙层，防止触摸穿透,
+                });
+
+                let param = {
+                    id: this.$parent.id,
+                    page: this.page
+                }
+                let response = await api.luckJoinUser(param)
+                if(response.code === 200){
+                    if(response.data.list.length < this.limit){
+                        this.has = false
+                    }
+                    // for(let j =0;j<40;j++){
+                    //     this.userlist.push(response.data.list[0])
+                    // }
+                     for(let i of response.data.list){
+                            this.userlist.push(i)
+                     }
+                   
+                    this.page++
+                }
+                
+                this.isLoad = false
+                this.$apply()
+                wepy.hideLoading();
+            }
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    .components-box-userlist {
+        .total {
+            text-align: center;
+            font-size: 28rpx;
+            color: #666;
+        }
+        .userlist{
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            margin: 20rpx;
+            padding-bottom: 40rpx;
+            .avatar{
+                width: 60rpx;
+                height: 60rpx;
+                margin: 10rpx;
+            }
+        }
+        .load-more{
+            display: block;
+            text-align: center;
+            color:#4876FF;
+            font-size: 26rpx;
+            padding-bottom: 30rpx;
+        }
+    }
+</style>

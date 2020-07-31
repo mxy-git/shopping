@@ -1,0 +1,462 @@
+<script>
+    import './util/mtj-wx-sdk.js';
+    import wepy from 'wepy'
+    import 'wepy-async-function'
+    import * as api from './api/api.js'
+    import * as util from './util/util.js'
+    export default class extends wepy.app {
+        config = {
+            pages: [
+                'pages/index',
+                'pages/discover',
+                // 'pages/vip',
+                'pages/rank',
+                'pages/me',
+                'pages/shoplist',
+                'pages/coupons',
+                'pages/black',
+                'pages/withdrawaldetail',
+                'pages/shareinvite',
+                'pages/collection',
+                'pages/notfound',
+                'pages/goodsdetail',
+                'pages/login',
+                'pages/login2',
+                'pages/login3',
+                'pages/register',
+                'pages/webview',
+                'pages/message',
+                'pages/messagedetail',
+                'pages/search',
+                'pages/officialmessage',
+                'pages/toplist',
+                'pages/school',
+                'pages/schooldetail',
+                'pages/articlelist',
+                'pages/topdetail',
+                'pages/newbie',
+                'pages/articledetail',
+                'pages/themelist',
+                'pages/themedetail',
+                'pages/activities',
+                'pages/shop',
+                'pages/best',
+                'pages/withdrawal',
+                'pages/orderlist',
+                'pages/friends',
+                'pages/profit',
+                'pages/setting',
+                'pages/luck',
+                'pages/lucklist',
+                'pages/kefu',
+                'pages/luckuserlist',
+                // 'pages/md',// 免单
+                // 'pages/mddetail', // 免单详情
+                'pages/bargain',
+                'pages/bargaindetail', //砍价详情
+                'pages/bargainofme', //我打砍价
+                'pages/bargainreback', // 订单返现页面
+                'pages/haodian', // 每日好店
+                'pages/pinpai', // 品牌馆
+                'pages/up',
+                'pages/mallcollection' // 店铺收藏
+            ],
+            window: {
+                backgroundTextStyle: 'dark',
+                navigationBarBackgroundColor: '#ffffff',
+                navigationBarTitleText: '',
+                navigationBarTextStyle: 'black',
+                onReachBottomDistance: 100
+            },
+            tabBar: {
+                color: '#000000',
+                selectedColor: '#caad7c',
+                borderStyle: 'black',
+                backgroundColor: '#ffffff',
+                position: 'bottom',
+                list: [{
+                        pagePath: 'pages/index',
+                        iconPath: 'assets/tab-home.png',
+                        selectedIconPath: 'assets/tab-home-checked.png',
+                        text: '首页'
+                    },
+                    {
+                        pagePath: 'pages/discover',
+                        iconPath: 'assets/tab-find.png',
+                        selectedIconPath: 'assets/tab-find-checked.png',
+                        text: '发现'
+                    },
+                    // {
+                    //     pagePath: 'pages/bargain',
+                    //     iconPath: 'assets/tab-bargain.png',
+                    //     selectedIconPath: 'assets/tab-bargain-checked.png',
+                    //     text: '砍价'
+                    // },
+                    {
+                        pagePath: 'pages/rank',
+                        iconPath: 'assets/tab-rank.png',
+                        selectedIconPath: 'assets/tab-rank-checked.png',
+                        text: '热销'
+                    },
+                    {
+                        pagePath: 'pages/me',
+                        iconPath: 'assets/tab-mine.png',
+                        selectedIconPath: 'assets/tab-mine-checked.png',
+                        text: '我的'
+                    }
+                ]
+            },
+            navigateToMiniProgramAppIdList: ['wx32540bd863b27570'],
+            networkTimeout: {
+                downloadFile: 15000,
+                request: 6000,
+            },
+            sitemapLocation: 'sitemap.json'
+        };
+        globalData = {
+            pid: 0,
+            flag: 0,
+            channel: 0,
+            scene:'',
+            reg:0,
+            tid:0,
+        }
+        constructor() {
+            super()
+            this.use('requestfix')
+            this.use('promisify')
+        }
+        async reLogin() {
+            let loginInfo = await wepy.login();
+            let param = {
+                code: loginInfo.code,
+            }
+            let response = await api.userIsExist(param);
+            if (response.code === 200) {
+                wepy.setStorageSync('userinfo', response.data);
+                return response.data
+            } else if (response.code === 201) {
+                // 当用户不存在的时候执行
+                return 1
+            } else {
+                console.log('弹出系统异常')
+                wepy.showToast({
+                    title: response.msg,
+                    icon: 'none'
+                })
+                return 0
+            }
+        }
+        goLogin(backPage, backType){
+            wepy.redirectTo({
+                url: '/pages/login3?backpage=' + backPage + '&backtype=' + backType
+            });
+        }
+
+        // 登录状态检查
+        async LoginCheck(backPage, backType) {
+            let userinfo = wepy.getStorageSync('userinfo')
+            if (userinfo) {
+                let now = Date.parse(new Date())
+                if (userinfo.timeout > now) {
+                    if (userinfo.status == 0) {
+                        wepy.redirectTo({
+                            url: '/pages/black'
+                        });
+                        return false;
+                    } else {
+                        return userinfo
+                    }
+                } else {
+                    console.log('relogin')
+                    let ret = await this.reLogin()
+                    if (ret == 1) {
+                        this.goLogin(backPage, backType)
+                        return false
+                    } else if (ret == 0) {
+                        return false
+                    } else {
+                        if (ret.status == 0) {
+                            wepy.redirectTo({
+                                url: '/pages/black'
+                            });
+                            return false;
+                        } else {
+                            return ret
+                        }
+                    }
+                }
+            } else {
+                let loginInfo = await wepy.login();
+                let param = {
+                    code: loginInfo.code,
+                }
+                let response = await api.userIsExist(param);
+                if (response.code === 200) {
+                    wepy.setStorageSync('userinfo', response.data);
+                    if (response.data.status == 0) {
+                        wepy.redirectTo({
+                            url: '/pages/black'
+                        });
+                        return false;
+                    } else {
+                        return response.data
+                    }
+                } else {
+                    this.goLogin(backPage, backType)
+                    return false
+                }
+            }
+        }
+        // 小程序业务
+        onPageNotFound() {
+            wx.redirectTo({
+                url: '/pages/notfound'
+            });
+        }
+        async onLaunch(option) {
+            // 场景值判断
+            if (option) {
+                if (option.query.hasOwnProperty('scene')) {
+                    let scene = decodeURIComponent(option.query.scene)
+                    let res = util.querystring2obj(scene)
+                    this.globalData.pid = res.pid || res.p || 0
+                    this.globalData.flag = res.flag || res.f || 0
+                    this.globalData.reg = res.reg || res.r || 0
+                    this.globalData.tid = res.tid || 0
+                } else {
+                    // 从卡片中打开
+                    this.globalData.pid = option.query.pid || 0
+                    this.globalData.flag = option.query.flag || 0
+                    this.globalData.reg = option.query.reg  || 0
+                    this.globalData.tid = option.query.tid || 0
+                }
+                // 渠道判断
+                if (option.query.hasOwnProperty('channel') && option.query.channel === 'cover') {
+                    // 设置渠道弹窗
+                    wepy.setStorageSync('showNotice', 1)
+                    this.globalData.channel = option.query.channel
+                }
+            }
+            // 进入场景值
+            let sceneObj = wx.getLaunchOptionsSync()
+            if(sceneObj){
+                this.globalData.scene = {
+                    path:sceneObj.path,
+                    scene: sceneObj.scene
+                }
+                console.log(this.globalData)
+            }
+
+            // 检查版本更新
+            if (wx.hasOwnProperty('getUpdateManager')) {
+                let manager = wx.getUpdateManager()
+                manager.onCheckForUpdate(function(res) {})
+                manager.onUpdateReady(function() {
+                    wepy.showToast({
+                        title: '新版本已经准备好了'
+                    })
+                    manager.applyUpdate()
+                })
+                manager.onUpdateFailed(function() {
+                    console.log('新版本下载失败');
+                })
+            }
+            // 网络状态变化
+            // wx.onNetworkStatusChange(function(res) {
+            //     wx.setStorageSync('onNetworkStatusChange', res)
+            //     if (!res.isConnected) {
+            //         wx.showToast({
+            //             title: '无网络',
+            //             icon: 'loading',
+            //             duration: 3000
+            //         })
+            //     }
+            // })
+        }
+    }
+</script>
+
+<style lang='less'>
+     ::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+        color: transparent;
+    }
+    @font-face {
+        font-family: 'icon';
+        src: url(data:font/truetype;charset=utf-8;base64,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) format('truetype');
+        font-weight: normal;
+        font-style: normal;
+    }
+    .icon {
+        font-family: "icon" !important;
+        font-size: inherit;
+        font-style: normal;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    .icon-more:before {
+        content: "\e6a7";
+    }
+    .icon-home:before {
+        content: "\e607";
+    }
+    .icon-praise:before {
+        content: "\e614";
+    }
+    .icon-copy:before {
+        content: "\e744";
+    }
+    .icon-close:before {
+        content: "\e61a";
+    }
+    .icon-search:before {
+        content: "\e6c8";
+    }
+    .icon-clear:before {
+        content: "\e639";
+    }
+    .icon-back:before {
+        content: "\e676";
+    }
+    .icon-message:before {
+        content: "\e624";
+    }
+    .icon-chevron-right-s:before {
+        content: "\e6c9";
+    }
+    .icon-Plus:before {
+        content: "\e60b";
+    }
+    .icon-share:before {
+        content: "\e6d8";
+    }
+    .icon-setting:before {
+        content: "\e677";
+    }
+    .icon-delete:before {
+        content: "\e6c2";
+    }
+    .icon-preview:before {
+        content: "\e63a";
+    }
+    .icon-edit:before {
+        content: "\e780";
+    }
+    .icon-heart:before {
+        content: "\e766";
+    }
+    .icon-wechat:before {
+        content: "\e6bc";
+    }
+    .icon-weChat1:before {
+        content: "\e710";
+    }
+    .icon-ticket:before {
+        content: "\e60d";
+    }
+    .icon-phone:before {
+        content: "\e612";
+    }
+    .icon-tick:before {
+        content: "\e67e";
+    }
+    .icon-sun:before {
+        content: "\e668";
+    }
+    .icon-star:before {
+        content: "\e615";
+    }
+    .icon-star-1:before {
+        content: "\e70a";
+    }
+    .icon-moon:before {
+        content: "\e6e6";
+    }
+    .container {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-sizing: border-box;
+    }
+    .com-btn-1 {
+        color: #ffffff;
+        text-align: center;
+        background-color: #000000;
+        border-radius: 4px;
+    }
+    .com-btn-2 {
+        color: #ffffff;
+        text-align: center;
+        background-color: #cfaa71;
+        border-radius: 4px;
+    }
+    .com-btn-3 {
+        color: #ffffff;
+        text-align: center;
+        background-color: #2f323b;
+        border-radius: 4px;
+       
+    }
+    .com-btn-4 {
+        color: #ffffff;
+        text-align: center;
+        background: linear-gradient(to right, #a936ff, #7d31ff);
+        border-radius: 4px;
+    }
+    .coupon {
+        position: relative;
+        color: #ffffff;
+        height: 34rpx;
+        line-height: 34rpx;
+        padding: 0 10rpx;
+        font-size: 24rpx;
+        background-color: #cfaa71; // background: linear-gradient(to right, #a936ff , #7d31ff);
+        white-space: nowrap;
+        overflow: hidden;
+    }
+    .coupon::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: -6rpx;
+        width: 10rpx;
+        height: 10rpx;
+        margin-top: -5rpx;
+        border-radius: 100%;
+        background-color: #fff;
+    }
+    .coupon::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: -6rpx;
+        width: 10rpx;
+        height: 10rpx;
+        margin-top: -5rpx;
+        border-radius: 100%;
+        background-color: #fff;
+    }
+    .pageTitle {
+        color: #000;
+        font-size: 50rpx;
+        line-height: 1;
+    }
+    checkbox .wx-checkbox-input {
+        width: 32rpx;
+        height: 32rpx;
+        background: #2a2e36;
+        border: solid 1px #ffffff;
+        border-radius: 100%;
+    }
+    checkbox .wx-checkbox-input.wx-checkbox-input-checked::before {
+        content: '';
+        width: 20rpx;
+        height: 20rpx;
+        transform: translate(-50%, -50%) scale(1);
+        background: #cfab71;
+        border-radius: 100%;
+    }
+</style>

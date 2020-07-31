@@ -1,0 +1,292 @@
+
+
+<template>
+	<view class="container">
+		<block wx:if="{{canIUse}}">
+			<image wx:if="{{imgHost}}" class="logo" src="{{config.ossImg}}/logo-0.png" />
+			<view class="text">
+				<text>自</text>
+				<text>购</text>
+				<text>省</text>
+				<text>钱</text>
+				<text>分</text>
+				<text>享</text>
+				<text>赚</text>
+				<text>钱</text>
+			</view>
+			<button bindgetuserinfo="login" class="login" openType="getUserInfo">
+				<view class="icon icon-weChat"></view>
+				<view class="txt">微信授权登录</view>
+			</button>
+			<view class="tips2">登录后可购物，参加活动还可领优惠劵、现金等好礼</view>
+			<view class="agreement-view">
+				<navigator class="agreement" url="/pages/webview?webUrl={{config.api}}/system/privacy">查看每日必拼用户协议</navigator>
+			</view>
+			<mymodal></mymodal>
+		</block>
+		<block wx:else>
+			<view class="update">请升级微信版本</view>
+		</block>
+	</view>
+</template>
+
+<script>
+	import wepy from 'wepy'
+	import Config from '../config.js'
+	import * as api from '../api/api.js'
+	import * as util from '../util/util.js'
+	import Modal from "../components/modal"
+	export default class Login2 extends wepy.page {
+		config = {
+			backgroundTextStyle: 'light',
+			navigationBarBackgroundColor: '#2f323b',
+			navigationBarTitleText: '授权登录',
+			navigationBarTextStyle: 'white',
+			// navigationStyle: 'custom'
+		}
+		data = {
+			imgHost: Config.imgHost,
+			config: Config,
+			backpage: '',
+			backtype: '',
+			canIUse: wx.canIUse('button.open-type.getUserInfo')
+		}
+		components = {
+			mymodal: Modal
+		}
+		onLoad(options) {
+			this.backpage = decodeURIComponent(options.backpage)
+			this.backtype = parseInt(options.backtype)
+		}
+		methods = {
+			async login() {
+				wepy.showLoading({
+					title: 'Loading...', //提示的内容,
+					mask: true, //显示透明蒙层，防止触摸穿透,
+					success: res => {}
+				});
+				// 获取授权的设置
+				let setting = await wepy.getSetting()
+				if (!setting.authSetting['scope.userInfo']) {
+					wepy.hideLoading()
+					let res = wx.getSystemInfoSync()
+					if (util.compareVersion(res.SDKVersion, '2.7.7') === -1) {
+						wx.showModal({
+							title: '提示',
+							content: '需要您授权 [使用用户信息] 的权限',
+							confirmText: '去授权',
+							confirmColor: '#f67f43',
+							cancelText: '放弃',
+							cancelColor: '#666',
+							success(res) {
+								console.log(res)
+								if(res.confirm){
+									wx.openSetting({
+									success (res) {
+										if (res.authSetting['scope.userInfo'] === true) {
+											console.log(true)
+										} else {
+												console.log(false)
+											}
+										}
+									})
+								}
+							}
+						})
+						// 低版本直接结束
+						return false;
+					} else {
+						let act = await wepy.showModal({
+							title: '提示',
+							content: '需要您授权 [使用用户信息]',
+							confirmText: '去授权',
+							confirmColor: '#f67f43',
+							cancelText: '放弃',
+							cancelColor: '#666'
+						})
+						if (act.confirm) {
+							let setting = await wepy.openSetting()
+							if (setting.authSetting['scope.userInfo'] !== true) {
+								return false
+							}else{
+								wepy.showLoading()
+							}
+						}else{
+							return false
+						}
+					}
+				}
+
+				// 执行登录逻辑
+				let loginInfo = await wepy.login()
+				if(loginInfo.errMsg !== 'login:ok'){
+					wepy.showToast({
+						title:'登录失败',
+						icon: 'none'
+					});
+					return false;
+				}
+
+				let userInfoRes = await wepy.getUserInfo({
+					withCredentials: true
+				}).catch((res) => {
+					return res;
+				})
+				console.log(userInfoRes)
+
+				if (userInfoRes.errMsg === 'getUserInfo:ok') {
+					if(!userInfoRes.encryptedData || !userInfoRes.iv){
+						wepy.showToast({
+							title:"授权失败",
+							icon:'none'
+						});
+						return false;
+					}
+					let data = {
+						code: loginInfo.code,
+						encryptedData: userInfoRes.encryptedData,
+						iv: userInfoRes.iv,
+						pid: this.$parent.globalData.pid || 0,
+						flag: this.$parent.globalData.flag || 0,
+						channel: this.$parent.globalData.channel || ''
+					}
+					let response = await api.login2(data)
+					if (response.code === 200) {
+						wepy.setStorageSync('userinfo', response.data);
+						if (this.backtype === 1) {
+							wepy.redirectTo({
+								url: this.backpage
+							});
+						} else if (this.backtype === 2) {
+							wepy.switchTab({
+								url: this.backpage
+							});
+						} else {
+							let pages = getCurrentPages();
+							if(pages.length === 1){
+								wepy.switchTab({
+									url: '/pages/index'
+								});
+							}else{
+								wepy.navigateBack({
+									delta: 1
+								})
+							}
+						}
+						wepy.hideLoading();
+					}
+				} else {
+					wepy.hideLoading()
+					wepy.showToast({
+						title: '授权失败', //提示的内容,
+						icon: 'none', //图标,
+					});
+				}
+			}
+		}
+	}
+</script>
+
+<style lang="less" scoped>
+	.container {
+		position: fixed;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		background: #2f323b;
+		background-size: 750rpx 1338rpx, 750rpx 217rpx;
+		overflow: hidden;
+		z-index: 1;
+
+		.update{
+			margin-top: 100rpx;
+			color: white;
+			font-size: 30rpx;
+		}
+
+		.logo {
+			display: block;
+			width: 166rpx;
+			height: 195rpx;
+			margin: 250rpx auto 0 auto;
+		}
+		.text {
+			position: relative;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			color: #ffffff;
+			font-size: 26rpx;
+			margin-top: 50rpx;
+		}
+		.text::before {
+			position: absolute;
+			content: '';
+			top: -20rpx;
+			left: 50%;
+			width: 40rpx;
+			margin-left: -20rpx;
+			height: 4rpx;
+			background-color: #cfaa71;
+		}
+		.text text {
+			margin: 0 10rpx;
+		}
+		.text text:nth-child(3),
+		.text text:nth-child(4),
+		.text text:nth-child(7),
+		.text text:nth-child(8) {
+			color: #cfaa71;
+		}
+		.text text:nth-child(5) {
+			margin-left: 40rpx;
+		}
+		.tips {
+			color: #999;
+			font-size: 38rpx;
+			margin-top: 150rpx;
+			text-align: center;
+		}
+		.login {
+			position: relative;
+			z-index: 1;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			width: 656rpx;
+			height: 100rpx;
+			background: #cfaa71;
+			border-radius: 4px;
+			margin: 30rpx auto 30rpx auto;
+			margin-top: 100rpx;
+			overflow: visible;
+			.icon {
+				color: #ffffff;
+				font-size: 50rpx;
+			}
+			.txt {
+				color: #ffffff;
+				font-size: 36rpx;
+				margin-left: 10rpx;
+			}
+		}
+		.tips2 {
+			color: #999;
+			font-size: 26rpx;
+			line-height: 1;
+			text-align: center;
+		}
+		.agreement-view {
+			width: 100%;
+			margin: 0 auto;
+			position: fixed;
+			bottom: 70rpx;
+			text-align: center;
+			.agreement {
+				color: #999;
+				font-size: 28rpx;
+			}
+		}
+	}
+</style>

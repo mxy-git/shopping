@@ -1,0 +1,171 @@
+<template>
+    <view id="withdrawalDetailCa">
+        <view class="pageTitle">提现明细</view>
+        <view class="list">
+            <view class="item {{index==0?'process':''}}" wx:for="{{list}}" wx:key="index">
+                <view class="top">
+                    <view class="time">提现时间：{{item.addtime}}</view>
+                    <!-- <view class="type">{{item.typeName}}</view> -->
+                </view>
+                <view class="middle">
+                    <view class="money">申请金额 ￥{{item.money}}</view>
+                    <view class="status status2">{{item.status}}</view>
+                </view>
+                <view class="bottom">
+                    <view class="single">
+                        <view class="t">扣除技术服务费</view>
+                        <view class="v">￥{{item.service_money}}</view>
+                    </view>
+                    <view class="single">
+                        <view class="t">实际到账金额</view>
+                        <view class="v">￥{{item.real_money}}</view>
+                    </view>
+                </view>
+            </view>
+        </view>
+        <nomore hidden="{{has}}"></nomore>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from '../api/api.js'
+    import Nomore from "../components/nomore"
+    export default class Withdrawaldetail extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+        }
+        data = {
+            page: 1,
+            has: true,
+            isLoading: false,
+            limit: 10,
+            list: []
+        }
+        components = {
+            nomore: Nomore
+        }
+        async loadData() {
+            if (this.has && this.isLoading === false) {
+                this.isLoading = true
+                wepy.showLoading()
+                let param = {
+                    page: this.page
+                }
+                let response = await api.withdrawalList(param)
+                if (response.code === 200) {
+                    console.log(response)
+                    if (response.data.length < this.limit) {
+                        this.has = false
+                    }
+                    for (let i of response.data) {
+                        this.list.push(i)
+                    }
+                    this.page++
+                }
+                this.isLoading = false
+                wepy.hideLoading()
+                this.$apply()
+            }
+        }
+        async onLoad() {
+            let backpage = encodeURIComponent('/pages/withdrawaldetail')
+            let res = await this.$parent.LoginCheck(backpage,1)
+            if(!res){
+                return false
+            }
+            wx.hideShareMenu()
+            this.loadData()
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    #withdrawalDetailCa {
+        padding: 126rpx 32rpx 0 32rpx;
+        overflow: hidden;
+        .pageTitle {
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 32rpx 34rpx 32rpx;
+            background-color: #fff;
+            border-bottom: 1rpx solid #eee;
+        }
+        .list {
+            overflow: hidden;
+            .item {
+                line-height: 1;
+                padding: 0 24rpx;
+                margin-bottom: 20rpx;
+                background-color: #f9fff3;
+                border: solid 1px #deedce;
+                border-radius: 4px;
+                overflow: hidden;
+                .top {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    color: #999;
+                    font-size: 24rpx;
+                    margin-top: 30rpx;
+                    overflow: hidden;
+                }
+                .middle {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-top: 30rpx;
+                    overflow: hidden;
+                    .money {
+                        color: #333;
+                        font-size: 40rpx;
+                    }
+                    .status {
+                        font-size: 32rpx;
+                    }
+                    .status.status1 {
+                        color: #d64f49;
+                    }
+                    .status.status2 {
+                        color: #48ac45;
+                    }
+                }
+                .bottom {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-top: 30rpx;
+                    padding: 30rpx 0;
+                    font-size: 24rpx;
+                    border-top: 1px dotted #dbdbdb;
+                    overflow: hidden;
+                    .single {
+                        flex: 1;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 24rpx;
+                        line-height: 24rpx;
+                        overflow: hidden;
+                        .t {
+                            color: #999;
+                        }
+                        .v {
+                            margin-left: 10rpx;
+                        }
+                    }
+                    .single:nth-child(1) {
+                        border-right: 1px solid #dbdbdb;
+                    }
+                }
+            }
+            .item.process {
+                background-color: #fff6f6;
+                border: solid 1px #ffe0e0;
+            }
+        }
+    }
+</style>

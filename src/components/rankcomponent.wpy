@@ -1,0 +1,284 @@
+<template>
+    <view class="goodsLists">
+        <view class="goods">
+            <view class="goods-item single" style="width:{{width}}rpx;" wx:for="{{goods}}" wx:key="index" wx:for-item="item" @tap.stop="gooodsDetail('{{item.goods_id}}')">
+                <view class="item-header">
+                    <image style="width:{{width}}rpx;height:{{width}}rpx;" src="{{item.goods_thumbnail_url}}" mode="scaleToFill" lazy-load="true" />
+                    <view class="no">{{index+1}}</view>
+                </view>
+                <view class="item-body">
+                    <view class="goods-name">{{item.goods_name}}</view>
+                    <view class="goods-desc">
+                        <text class="tags">优选商品</text>
+                        <view class="goods-desc-right">销量{{item.sold_quantity}}件</view>
+                    </view>
+                </view>
+                <view class="item-footer">
+                    <view class="tips"><text class="quanhou">进货价</text><text class="final_price">{{item.final_price}}</text></view>
+                     <button class="share" open-type="share" @tap.stop="nothing" data-item="{{item}}">分享进货</button>
+                </view>
+            </view>
+        </view>
+    </view>
+</template>
+<script>
+    import wepy from "wepy"
+    import * as Api from "../api/api.js"
+    export default class Rankcomponent extends wepy.component {
+        data = {
+            role: null,
+            goods: [],
+            width: 330
+        }
+        methods = {
+            thumb_load(data) {
+                console.log(data)
+            },
+            init(param) {
+                this.role = param.role
+                if (param.width) {
+                    this.width = param.width
+                }
+                this.$apply()
+            },
+            clear(goods) {
+                this.goods = goods
+                this.$apply()
+            },
+            nothing(){
+
+            },
+            empty() {
+                this.goods = []
+                this.$apply()
+            },
+            add(goods) {
+                for (let i of goods) {
+                    this.goods.push(i)
+                }
+                this.$apply()
+            },
+            gooodsDetail(goods_id, event) {
+                wx.navigateTo({
+                    url: '/pages/goodsdetail?goods_id=' + goods_id
+                })
+            },
+            async goPDDApp(event) {
+                let data = event.target.dataset.item
+                let param = {
+                    goods_id: data.goods_id,
+                    from:'rank_component'
+                }
+                let response = await Api.getPddWeAppInfo(param)
+                if (response.code === 200) {
+                    wepy.navigateToMiniProgram({
+                        appId: response.data.appid,
+                        path: response.data.page_path,
+                        extraData: {
+                            pid: response.data.pid
+                        }
+                    }).catch((err) => {
+                        console.log(err)
+                    })
+                } else {
+                    console.log('get pdd info faile')
+                }
+            }
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    .goodsLists {
+        -webkit-overflow-scrolling: touch; // background: #f4f3f8;
+        box-sizing: border-box;
+        .goods {
+            white-space: nowrap;
+            display: flex;
+            flex-wrap: wrap;
+            padding: 10rpx;
+            justify-content: space-between;
+            
+            .goods-item {
+                width: 100%;
+                border-radius: 10rpx;
+                display: flex;
+                flex-direction: column;
+                width: 310rpx;
+                background: white;
+                margin-top: 20rpx;
+
+                &:nth-child(1) .item-header .no{
+                    background: url("https://dkpt.oss-cn-qingdao.aliyuncs.com/wechat/dkNew/img/ranking/ranking-1.png") top left no-repeat;
+                    background-size: contain;
+                }
+                &:nth-child(2) .item-header .no{
+                    background: url("https://dkpt.oss-cn-qingdao.aliyuncs.com/wechat/dkNew/img/ranking/ranking-2.png") top left no-repeat;
+                    background-size: contain;
+                }
+                &:nth-child(3) .item-header .no{
+                    background: url("https://dkpt.oss-cn-qingdao.aliyuncs.com/wechat/dkNew/img/ranking/ranking-3.png") top left no-repeat;
+                    background-size: contain;
+                }
+
+                .item-header {
+                    position: relative;
+                    image {
+                        width: 310rpx;
+                        height: 310rpx;
+                        border-top-left-radius: 10rpx;
+                        border-top-right-radius: 10rpx;
+                    }
+                    
+                    .no {
+                        color: #fff;
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 72rpx;
+                        height: 75rpx;
+                        padding-left: 4rpx;
+                        font-size: 38rpx;
+                        font-style: italic;
+                        font-weight: bold;
+                        background: url("https://dkpt.oss-cn-qingdao.aliyuncs.com/wechat/dkNew/img/ranking/ranking-4.png") top left no-repeat;
+                        background-size: contain;
+                        white-space: nowrap;
+                        overflow: hidden;
+                    }
+                   
+                }
+                .item-body {
+                    padding: 0 10rpx;
+                    .goods-name {
+                        height: 80rpx;
+                        line-height: 40rpx;
+                        font-size: 26rpx;
+                        margin-top: 10rpx;
+                        white-space: normal;
+                        overflow: hidden;
+                        word-break: break-all;
+                        text-overflow: ellipsis;
+                        display: -webkit-box;
+                        /*元素作为box伸缩盒子*/
+                        -webkit-line-clamp: 2;
+                        /*设置文本行数限制*/
+                        -webkit-box-orient: vertical;
+                        /*设置文本排列方式*/
+                    }
+                    .goods-desc {
+                        margin: 20rpx 10rpx;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        .tags {
+                            font-size: 24rpx;
+                            color: #f17432;
+                            background: #fff0e9;
+                            padding: 0 10rpx;
+                            border-radius: 5rpx;
+                            margin-right: 10rpx;
+                        }
+                        .goods-desc-left {
+                            display: flex;
+                            min-width: 80rpx;
+                            font-size: 22rpx;
+                            border: 1px solid #cfaa71;
+                            border-radius: 6rpx;
+                            .quan {
+                                background: #cfaa71;
+                                color: white;
+                                padding: 0 10rpx;
+                            }
+                            .quan-price {
+                                flex-grow: 1;
+                                width: 100%;
+                                padding: 0 3rpx;
+                                text-align: center;
+                                background: white;
+                                color: #cfaa71;
+                                border-top-right-radius: 6rpx;
+                                border-bottom-right-radius: 6rpx;
+                            }
+                        }
+                        .goods-desc-right {
+                            font-size: 24rpx;
+                            color: #858489;
+                        }
+                    }
+                }
+                .item-desc {
+                    margin: 0 10rpx;
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: center;
+                    min-height: 30rpx;
+                    .tags {
+                        font-size: 24rpx;
+                        color: #f17432;
+                        background: #fff0e9;
+                        padding: 0 10rpx;
+                        border-radius: 5rpx;
+                        margin-right: 10rpx;
+                    }
+                }
+                .item-footer {
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin: 20rpx 10rpx;
+                    .tips {
+                        color: #FF3333;
+                        font-size: 24rpx;
+                        .final_price {
+                            font-size: 26rpx;
+                            margin-left: 5rpx;
+                            font-weight: bold;
+                        }
+                        .quanhou {
+                            letter-spacing: 3rpx;
+                        }
+                    }
+                    button {
+                        &::after {
+                            border-radius: 0;
+                        }
+                        background: linear-gradient(to right,
+                        #a936ff,
+                        #7d31ff);
+                        color: white;
+                        font-size: 26rpx;
+                        height: 50rpx;
+                        line-height: 50rpx;
+                        width: 140rpx;
+                        padding-left: 5rpx;
+                        padding-right: 0;
+                        border: none;
+                        outline: none;
+                    }
+                    .share {
+                        border-top-left-radius: 120rpx;
+                        border-bottom-left-radius: 120rpx;
+                        font-size: 26rpx;
+                        margin-right: -10rpx;
+                        letter-spacing: 2rpx;
+                        .zhuan {
+                            letter-spacing: 3rpx;
+                        }
+                        .zhuan-money {
+                            font-size: 26rpx;
+                            margin-left: 3rpx;
+                        }
+                    }
+                    .buy {
+                        margin-right: 0;
+                        display: inline-block;
+                        width: 140rpx;
+                        border-radius: 120rpx;
+                    }
+                }
+            }
+        }
+    }
+</style>

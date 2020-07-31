@@ -1,0 +1,130 @@
+<template>
+    <view class="content" style="padding-top:{{$nav$nav_margin_top + $nav$nav_height}}px">
+        <nav></nav>
+        <view wx:if="{{!hasData}}" style="margin-top:200rpx;text-align:center;font-size:30rpx;color:#666;">暂无数据</view>
+        <block wx:else>
+            <view class="mall-item" wx:for="{{list}}" wx:key="index" wx:for-item="item" >
+                <view class="body" @tap.stop="goMall('{{item.mall_id}}')">
+                    <view class="body-left">
+                        <image src="{{item.goodslist[0].image}}" mode="aspectFill" lazy-load="true"></image>
+                        <text class="left-price">¥{{item.goodslist[0].price}}</text>
+                    </view>
+                    <view class="body-right">
+                        <block wx:for="{{item.goodslist}}" wx:key="goods_index2" wx:for-index='goods_index' wx:for-item="goods_item">
+                            <block wx:if="{{goods_index > 0}}">
+                                <view class="image-box">
+                                    <image src="{{goods_item.image}}" mode="aspectFill" lazy-load="true"></image>
+                                    <text class="right-price">¥{{goods_item.price}}</text>
+                                </view>
+                            </block>
+                        </block>
+                    </view>
+                </view>
+                <view class="footer">
+                    <view class="footer-left">
+                        <image class="mall_image" src="{{item.mall_img}}" mode="aspectFit" lazy-load="true" />
+                        <text class="mall_name">{{item.mall_name}}</text> 
+                    </view>
+                    <view class="footer-right" @tap.stop="goMall('{{item.mall_id}}')">
+                        <text>进去逛逛</text>
+                        <text class="icon icon-more"></text>
+                    </view>
+                </view>
+            </view>
+        </block>
+    </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import * as api from "../api/api.js"
+import Nav from "../components/nav"
+export default class Haodian extends wepy.page{
+    config = {
+        navigationBarTextStyle: 'black',
+        navigationStyle: 'custom',
+    }
+    components = {
+        nav:Nav
+    }
+    data = {
+        wxUser:null,
+        list:[],
+        hasData:true,
+        page:1,
+        has:true,
+        isLoading:false
+    }
+    async onLoad(){
+        let backpage = encodeURIComponent("/pages/haodian")
+        let res = await this.$parent.LoginCheck(backpage, 1)
+        if (!res) {
+            return false
+        }else{
+            this.wxUser = res
+            this.$invoke("nav",'init',{
+                title:'每日好店推荐',
+            })
+            this.getData()
+        }
+    }
+    onShareAppMessage(){
+        let share = {}
+        share.title = '拼多多内部券,官方筛选,买就买实惠,进来了解一下😃'
+        if(this.wxUser.role == 0){
+            share.path = "/pages/haodian?pid="+this.wxUser.uid + "&flag=0"
+        }else{
+            share.path = "/pages/haodian?pid="+this.wxUser.uid + "&flag=1"
+        }
+        console.log(share)
+        return share;
+    }
+    async getData(){
+        if(this.has && this.isLoading === false){
+            this.isLoading = true
+            wepy.showLoading({
+                title:'Loading'
+            })
+
+            let param = {
+                page:this.page
+            }
+            let response = await api.getHaodianList(param)
+            if(response.code === 200){
+                for(let i of response.data){
+                    this.list.push(i)
+                }
+                if(this.list.length === 0){
+                    this.hasData = false
+                }
+                this.$apply()
+                this.page++;
+                if(response.data.length == 0){
+                    this.has = false
+                }
+            }else{
+               wx.showToast({
+                   title: response.msg,
+                   icon: 'none'
+               })
+            }
+            this.isLoading = false
+            wepy.hideLoading()
+        }
+    }
+    methods = {
+        goMall(mall_id,event){
+            wepy.navigateTo({
+                url: '/pages/shop?mall_id='+mall_id
+            })
+        }
+    }
+    onReachBottom(){
+        this.getData()
+    }
+}
+</script>
+
+<style lang="less" scoped>
+    @import '../static/haodian.less';
+</style>

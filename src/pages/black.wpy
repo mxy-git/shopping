@@ -1,0 +1,31 @@
+<style lang="less" scoped>
+    .content {
+        padding-top: 100rpx;
+        .c-404 {
+            text-align: center;
+            font-size: 46rpx;
+        }
+        .c-content {
+            font-size: 30rpx;
+            color: #999;
+            text-align: center;
+            margin-top: 30rpx;
+        }
+    }
+</style>
+
+<template>
+    <view class="content">
+        <view class="c-404">提示</view>
+        <view class="c-content">您已经被拉入黑名单</view>
+    </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+export default class Black extends wepy.page {
+    config = {
+        navigationBarTitleText: '',
+    }
+}
+</script>

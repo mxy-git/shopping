@@ -1,0 +1,394 @@
+
+
+<template>
+    <view id="recommendCa">
+        <view class="header">
+            <view class="pageTitle">优品推荐</view>
+            <scroll-view scrollWithAnimation scrollX class="menu" scrollLeft="{{menuScrollLeft}}">
+                <!-- <view class="list">
+                    <view @tap="menuChange('{{index}}','{{item.id}}')" class="single {{menuChecked==index?'active':''}}" wx:for="{{menus}}" wx:key="index">
+                        {{item.name}}
+                    </view>
+                </view> -->
+            </scroll-view>
+        </view>
+        <swiper autoplay circular indicatorDots class="bannerSwiper">
+            <swiper-item wx:for="{{bannerList}}" wx:key="index">
+                <navigator class="single" hoverClass="none" url="{{item.navigate_url}}">
+                    <image class="bannerImg" mode="aspectFill" src="{{item.img}}" />
+                </navigator>
+            </swiper-item>
+        </swiper>
+        <view class="goodsList">
+            <view class="list">
+                <view @tap="goodsDetails('{{item.goods_id}}')" class="item" wx:for="{{goodsList}}" wx:key="index">
+                    <image class="img" mode="aspectFill" src="{{item.goods_thumbnail_url}}" />
+                    <view class="group">
+                        <view class="name">{{item.goods_name}}</view>
+                        <view class="coupon">券￥{{item.coupon_discount}}</view>
+                        <view class="stats">
+                            <view class="originalPrice">原价￥{{item.old_price}}</view>
+                            <view class="sell">已售{{item.sold_quantity}}单</view>
+                        </view>
+                        <view class="operating">
+                            <view class="price">
+                                <view class="t">券后价</view>
+                                <view class="v">￥{{item.final_price}}</view>
+                            </view>
+                            <button  @tap.stop="obstacle"  class="com-btn-4 share" data-item="{{item}}" openType="share" wx:if="{{wxUser.role!=0}}">
+                                                    <view class="t">分享赚</view>
+                                                    <view class="v">￥{{item.commission}}</view>
+                                                </button>
+                            <button @tap="goPDDApp" class="com-btn-4 buy" data-item="{{item}}" wx:if="{{wxUser.role==0}}">
+                                                    领券购买
+                                                </button>
+                        </view>
+                    </view>
+                </view>
+            </view>
+        </view>
+        <nomore wx:if="{{!has}}"></nomore>
+    </view>
+</template>
+
+<script>
+    // 优品推荐
+    import wepy from 'wepy'
+    import * as api from "../api/api.js";
+    import Nomore from "../components/nomore"
+    export default class Goodsdetail extends wepy.page {
+        config = {
+            navigationBarTitleText: '',
+        }
+        components = {
+            nomore: Nomore
+        }
+        data = {
+            wxUser: null,
+            share: null,
+            menus: [],
+            menuChecked: 0,
+            menuId: null,
+            bannerList: [],
+            goodsList: [],
+            page: 1,
+            has: true,
+            isLoading: false,
+            menuScrollLeft: 0,
+            menuScrollWidth: 0
+        }
+        methods = {
+            goodsDetails(goods_id, event) {
+                wepy.navigateTo({
+                    url: '/pages/goodsdetail?goods_id=' + goods_id
+                })
+            },
+            async obstacle(event) {
+                // 点击分享统计
+                console.log('click share')
+            },
+            menuChange(index, id, event) {
+                // 偏移
+                let offsetLeft = event.target.offsetLeft
+                this.menuScrollLeft = offsetLeft - this.menuScrollWidth *2 / 5
+                this.page = 1
+                this.has = true
+                this.isLoading = false
+                this.menuChecked = index
+                this.menuId = id
+                this.goodsList = []
+                this.$apply()
+                this.loadBanner()
+                this.loadData()
+            },
+            async goPDDApp(event) {
+                let data = event.target.dataset.item
+                let param = {
+                    goods_id: data.goods_id,
+                    from:'best'
+                }
+                let response = await api.getPddWeAppInfo(param)
+                if (response.code === 200) {
+                    wepy.navigateToMiniProgram({
+                        appId: response.data.appid,
+                        path: response.data.page_path,
+                        extraData: {
+                            pid: response.data.pid
+                        }
+                    })
+                } else {
+                    console.log('get pdd info faile')
+                }
+            }
+        }
+        async loadData() {
+            if (this.isLoading === false && this.has === true) {
+                this.isLoading = true
+                this.$apply()
+                wepy.showLoading()
+                let param = {
+                    page: this.page,
+                    id: this.menuId
+                }
+                let response = await api.apiBestGoodsList(param)
+                if (response.code === 200) {
+                    if (response.data.length === 0) {
+                        this.has = false
+                    }
+                    for (let i of response.data) {
+                        this.goodsList.push(i)
+                    }
+                    this.page++
+                }
+                this.isLoading = false
+                this.$apply()
+                wepy.hideLoading()
+            }
+        }
+        async loadBanner() {
+            let parma = {
+                id: this.menuId
+            }
+            let response = await api.apiBestBanner(parma)
+            if (response.code === 200) {
+                if (response.data.length > 0) {
+                    this.bannerList = []
+                    for (let i of response.data) {
+                        this.bannerList.push(i)
+                    }
+                    this.$apply()
+                }
+            }
+        }
+        async loadMenu() {
+            let res = await api.apiBestMenu()
+            if (res.code === 200) {
+                this.menuScrollLeft = true
+                this.menus = res.data
+                this.menuId = res.data[0].id
+            }
+            this.$apply()
+            this.loadBanner()
+            this.loadData()
+        }
+        async onReachBottom() {
+            this.loadData()
+        }
+        watch = {
+            menus(newValue,oldValue){
+                let that = this
+                let query = wx.createSelectorQuery()
+                query.select('.menu').boundingClientRect(function(rect) {
+                    console.log(rect)
+                    that.menuScrollWidth = rect[0].width
+                    that.$apply()
+                })
+                query.exec()
+            }
+        }
+        async onLoad() {
+            let backpage = encodeURIComponent('/pages/best')
+            let res = await this.$parent.LoginCheck(backpage,1)
+            if(!res){
+                return false
+            }else{
+                this.wxUser = res
+            }
+            this.loadMenu()
+            this.getShare()
+        }
+        async getShare() {
+            let response = await api.getShare()
+            if (response.code === 200) {
+                this.share = response.data
+                this.$apply()
+            }
+        }
+        // 页面分享
+        onShareAppMessage(res) {
+            let share = {}
+            if (res.target) {
+                let path = ''
+                let dataset = res.target.dataset
+                path = '/pages/goodsdetail?goods_id=' + dataset.item.goods_id + '&pid=' + this.wxUser.uid
+                let title = '【拼多多】优惠券￥' + dataset.item.coupon_discount + "原价￥" + dataset.item.old_price + " 券后价￥" + dataset.item.final_price
+                share = {
+                    title: title,
+                    path: path,
+                    imageUrl: dataset.item.goods_thumbnail_url
+                }
+            } else {
+                let path = "/pages/best?pid=" + this.wxUser.uid
+                share = {
+                    title: this.share.title,
+                    path: path,
+                    imageUrl: this.share.image
+                }
+            }
+            console.log('rank page share content', share)
+            return share
+        }
+    }
+</script>
+
+
+<style lang="less" scoped>
+    #recommendCa {
+        padding: 120rpx 32rpx 10rpx 32rpx;
+        overflow: hidden;
+        .header {
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 32rpx;
+            background-color: #fff;
+            .pageTitle {
+                padding-bottom: 40rpx;
+            }
+        }
+        .menu {
+            overflow: hidden;
+            .list {
+                display: flex;
+                justify-content: flex-start;
+                align-items: center;
+                flex-wrap: nowrap;
+            }
+            .single {
+                color: #666;
+                min-width: 150rpx;
+                height: 100rpx;
+                line-height: 100rpx;
+                text-align: center;
+                white-space: nowrap;
+                font-size: 28rpx;
+                transition: all 0.2s ease;
+                
+            }
+            .single:first-child {
+                padding-left: 0;
+            }
+            .single:last-child {
+                padding-right: 0;
+            }
+            .single.active {
+                color:#FF3333;
+                font-size:34rpx;
+                font-weight:bold;
+
+            }
+        }
+        .bannerSwiper {
+            height: 376rpx;
+            border-radius: 4px;
+            overflow: hidden;
+            .single {
+                display: block;
+                width: 100%;
+                height: 100%;
+                .bannerImg {
+                    display: block;
+                    width: 100%;
+                    height: 100%;
+                }
+            }
+        }
+        .goodsList {
+            margin-top: 30rpx;
+            overflow: hidden;
+            .list {
+                overflow: hidden;
+                .item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20rpx 30rpx;
+                    margin-bottom: 24rpx;
+                    background-color: #f5f5f7;
+                    border-radius: 4px;
+                    overflow: hidden;
+                }
+                .img {
+                    width: 220rpx;
+                    height: 250rpx;
+                    margin-right: 30rpx;
+                }
+                .group {
+                    flex: 1;
+                    overflow: hidden;
+                    .name {
+                        color: #000;
+                        font-size: 28rpx;
+                        height: 80rpx;
+                        line-height: 40rpx;
+                        white-space: normal;
+                        overflow: hidden;
+                    }
+                    .coupon {
+                        display: inline-block;
+                    }
+                    .stats {
+                        color: #999;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        font-size: 22rpx;
+                        padding: 10rpx 0;
+                        border-bottom: 1px dotted #dbdbdb;
+                        overflow: hidden;
+                        .originalPrice {
+                            text-decoration: line-through;
+                        }
+                    }
+                    .operating {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-top: 20rpx;
+                        overflow: hidden;
+                        button {
+                            margin: 0;
+                        }
+                        .price {
+                            color: #d84f49;
+                            .t {
+                                font-size: 20rpx;
+                            }
+                            .v {
+                                font-size: 32rpx;
+                                font-weight: bold;
+                            }
+                        }
+                        .share {
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            width: content;
+                            height: 60rpx;
+                            line-height: 60rpx;
+                            padding: 0 10rpx;
+                            overflow: hidden;
+                            .t {
+                                font-size: 20rpx;
+                            }
+                            .v {
+                                font-size: 32rpx;
+                            }
+                        }
+                        .buy {
+                            width: content;
+                            height: 60rpx;
+                            line-height: 60rpx;
+                            text-align: center;
+                            overflow: hidden;
+                            font-size: 24rpx;
+                            padding: 0 30rpx;
+                        }
+                    }
+                }
+            }
+        }
+    }
+</style>

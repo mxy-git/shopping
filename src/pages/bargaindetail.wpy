@@ -1,0 +1,585 @@
+<template>
+    <view class="content" style="padding-top:{{$nav$nav_margin_top + $nav$nav_height}}px">
+        <nav></nav>
+        <!-- 非普通用户 -->
+        <block wx:if="{{wxUser.role > 0}}">
+            <block wx:if="{{info.bargain_status && detailStatus}}">
+                <view class="header">
+                    <view class="header-top">
+                        <view class="user-info" wx:if="{{info.has_bargain_id}}">
+                            <image src="{{info.user.avatarurl}}" />
+                            <text class="nickname">{{info.user.nickname}}</text>
+                        </view>
+                        <view wx:else></view>
+                        <view class="rule" @tap.stop="showRule">活动规则</view>
+                    </view>
+                    <view class="header-body">
+                        <view class="left">
+                            <image src="{{info.goods_image}}" />
+                        </view>
+                        <view class="right">
+                            <view class="right-header">{{info.goods_name}}</view>
+                            <view class="right-body">
+                                <!-- 砍价进行中 -->
+                                <block wx:if="{{info.bargain_record_staus == 0}}">
+                                    <view class="remain-time" wx:if="{{info.has_bargain_id}}">
+                                        <text class="time-box">{{info.daojishi.h}}</text>
+                                        <text class="time-text">:</text>
+                                        <text class="time-box">{{info.daojishi.m}}</text>
+                                        <text class="time-text">:</text>
+                                        <text class="time-box">{{info.daojishi.s}}</text>
+                                        <text class="end-text">后结束</text>
+                                    </view>
+                                </block>
+                                <block wx:elif="{{info.bargain_record_staus == -1}}">
+                                    <text class="bargain-success-text">砍价已失败</text>
+                                </block>
+                            </view>
+                            <view class="right-footer"><text class="kan">砍</text>¥<text class="price-number">{{info.bargain_price}}</text></view>
+                        </view>
+                    </view>
+                    <view class="header-bottom" wx:if="{{info.has_bargain_id && info.bargain_record_staus == 0}}">
+                        <progress percent="{{info.process}}" stroke-width="12" activeColor="#ff5085" border-radius="10" />
+                        <view class="tips">
+                            <text>已砍{{info.already_bargain_money}}元</text>
+                            <text>还剩{{info.remain_money}}元</text>
+                        </view>
+                    </view>
+                </view>
+                <view class="body">
+                    <block wx:if="{{info.has_bargain_id == false}}">
+                        <view class="start-bargain" @tap.stop="showKjModal">开始砍价</view>
+                    </block>
+                    <block wx:else>
+                        <!-- 砍价的状态 -->
+                        <block wx:if="{{info.bargain_record_staus === 0}}">
+                            <!-- 砍价进行中 -->
+                            <block wx:if="{{info.is_creater}}">
+                                <button class="btn-bargain body-btn" open-type="share">喊朋友砍一刀</button>
+                                <button class="btn-bargain body-btn" @tap.stop="buildKjHaibao">生成砍价海报</button>
+                            </block>
+                            <block wx:else>
+                                <block wx:if="{{info.user_has_bargain}}">
+                                    <view class="display-flex">
+                                        <button class="body-btn btn-bargain" open-type="share">继续帮TA砍</button>
+                                        <button class="body-btn" @tap.stop="createSelfBargain">我也免费拿</button>
+                                    </view>
+                                </block>
+                                <block wx:else>
+                                    <view class="start-bargain" @tap.stop="showKjModal">帮TA砍价</view>
+                                </block>
+                            </block>
+                        </block>
+                        <block wx:elif="{{info.bargain_record_staus === 1}}">
+                            <view class="go-buy" wx:if="{{info.is_creater}}">
+                                <view class="fanxian-title">返现流程</view>
+                                <image class="fanxian-image" src="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/fanxian_liucheng.png" />
+
+                                <view class="tips">
+                                    <view class="tips-title">注意事项</view>
+                                    <view class="tips-itemm">1、若此活动商品存在多个SKU,只返最低价。例如:薄款9.9元,加厚12.9元,不论购买薄款还是加厚款,只返9.9元</view>
+                                    <view class="tips-item">2、砍价成后,返回状态会在10分钟内刷新,请勿重复购买,重复购买只返一次.</view>
+                                    <view class="tips-item">3、恶意刷单者封号处理.</view>
+                                    <view class="tips-item">4、如有疑问,请在[我的] - [专属客服]中咨询.</view>
+                                </view>
+
+                                <button class="body-btn" @tap.stop="goPdd">购买|确认收货后全额返现</button>
+                            </view>
+                            <view class="go-buy" wx:if="{{!info.is_creater}}">
+                                <p class="thanks">感谢您的支持,我创建的砍价已经完成了,谢谢您 (^_^)∠※</p>
+                            </view>
+                        </block>
+
+                        <block wx:elif="{{info.bargain_record_staus === 2}}">
+                            <button class="body-btn" @tap.stop="checkFanxian">查看返现</button>
+                        </block>
+                        <block wx:elif="{{info.bargain_record_staus === 3}}">
+                            <button class="body-btn" @tap.stop="checkFanxian">查看返现</button>
+                        </block>
+                        <block wx:elif="{{info.bargain_record_staus === 4}}">
+                            <button class="body-btn" @tap.stop="checkFanxian">查看返现</button>
+                        </block>
+                    </block>
+                    <block></block>
+                </view>
+                <view class="footer" wx:if="{{info.has_bargain_id}}">
+                    <view class="footer-header">
+                        <text>好友砍价记录</text>
+                    </view>
+                    <view class="footer-body">
+                        <view class="bargain-record-item" wx:for="{{info.bargain_record}}" wx:key="key" wx:for-item="rd">
+                            <view class="left">
+                                <image src="{{rd.avatarurl}}" />
+                                <text>{{rd.nickname}}</text>
+                            </view>
+
+                            <view>
+                                <text class="double" wx:if="{{rd.type == 2}}">双倍</text>
+                                <text>砍掉了{{rd.bargain_money}}元</text>
+                            </view>
+                        </view>
+                    </view>
+                    <view class="footer-footer" wx:if="{{has}}" @tap.stop="showMore">
+                        <text>查看更多</text>
+                    </view>
+                </view>
+            </block>
+            <block wx:else>
+                <view style="color:#666;text-align:center;margin-top:100rpx;font-size:30rpx;">当前砍价商品已下架,看看其它砍价商品吧</view>
+                <view class="look-list" @tap.stop="looklist">
+                    <text>看一看</text>
+                </view>
+            </block>
+            <!-- rule box -->
+            <view class="rule-box " wx:if="{{ruleStatus}}">
+                <view class="modal-rule-content">
+                    <view class="icon icon-close" @tap.stop='hideRule'></view>
+                    <view class="modal-title">活动规则</view>
+                    <view class="modal-content">
+                        <view>• 邀请好友一起砍价,砍到0元免费领取商品。</view>
+                        <view>• 领取商品时，需要您先行支付，确认收货15天后全额返现。</view>
+                        <view>• 可在【我的砍价】中查看返现进度详情。</view>
+                        <view>• 每个用户每天可以帮助3个砍价团砍价。</view>
+                        <view>• 砍价完成以后需要商品未下架前，在砍价页领取，逾期失效。请尽快领取</view>
+                        <view class="color-red">提示：邀请新用户，砍价更快哦~</view>
+                    </view>
+                </view>
+            </view>
+            <!-- 砍价box -->
+            <view class="bargain-box" wx:if="{{showKjBox}}">
+                <view class="bargain-box-content">
+                    <view class="icon icon-close" @tap.stop="hideKjModal"></view>
+                    <view class="kj-tips">砍价提示</view>
+                    <view class="kj-box-view">
+                        <view class="btn-kj" @tap.stop="nomarlKj">砍一刀</view>
+                        <view class="btn-kj" wx:if="{{adLoadSuccess && info.has_double}}" @tap.stop="doubleKj">加速砍价</view>
+                    </view>
+                    <view class="kj-tips2" wx:if="{{info.has_double}}">提示:加速砍价更快哦!</view>
+                </view>
+            </view>
+            <!-- 砍价结果box 自砍的话直接弹出 -->
+            <view class="bargain-result" wx:if="{{showKjResult}}">
+                <view class="bargain-result-content">
+                    <view class="icon icon-close" @tap.stop="hideKjResultBox"></view>
+                    <view class="bargain-result-content-title">
+                        <image src="{{info.user.avatarurl}}" wx:if></image>
+                        <text>谢谢你帮我砍了{{kanjiaResult.bargain_money}}元</text>
+                    </view>
+                    <view class="bargain-result-content-body">邀请你一起砍价,每天都有新活动商品上架</view>
+                    <view class="bargain-result-content-footer">
+                        <button @tap.stop="createSelfBargain">我也免费拿</button>
+                    </view>
+                </view>
+            </view>
+            <!-- 自己砍价的结果 -->
+            <view class="bargain-result-self" wx:if="{{showSelfKjResult}}">
+                <view class="bargain-result-self-content">
+                    <view class="icon icon-close" @tap.stop="closeSelfKjBox"></view>
+                    <view class="bargain-result-self-content-title">
+                        创建砍价成功
+                    </view>
+                    <view class="bargain-result-self-content-body">恭喜您!成功砍掉了{{kanjiaResult.bargain_money}}元</view>
+                    <view class="bargain-result-self-content-footer">
+                        <button @tap.stop="closeSelfKjBox">确定</button>
+                    </view>
+                </view>
+            </view>
+        </block>
+        <!-- 普通用户 -->
+        <block wx:else>
+            <view class="no-power">
+                <view class="no-power-content">
+                    <view class="no-power-body">您还不是会员,请联系客服升级会员</view>
+                    <button open-type="contact" session-from="{{sessionFrom}}" send-message-title="砍价客服" send-message-img="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/quick_send.png" show-message-card="true" send-message-path="/pages/custom/custom_392946996">联系客服</button>
+                </view>
+            </view>
+        </block>
+    </view>
+</template>
+
+<script>
+    import wepy from "wepy";
+    import * as util from "../util/util.js"
+    import * as api from "../api/api.js"
+    import Nav from "../components/nav"
+    export default class Bargaindetail extends wepy.page {
+        config = {
+            navigationBarTitleText: '砍价免费拿',
+            navigationBarTextStyle: 'black',
+            navigationStyle: 'custom',
+            enablePullDownRefresh: true,
+        }
+        components = {
+            nav: Nav
+        }
+        data = {
+            loadParam: null,
+            wxUser: {
+                role: 1
+            },
+            sessionFrom: null,
+            info: {
+                bargain_status: true,
+            },
+            detailStatus:true,
+            ruleStatus: false,
+            showKjBox: false,
+            showKjResult: false,
+            showSelfKjResult: false,
+            adLoadSuccess: true,
+            videoAd: null,
+            kanjiaResult: null,
+            timer: null,
+            kanjiaUserRecord:[],
+            page:2,
+            has:true,
+            limit:5,
+            isLoading:false
+        }
+        onUnload() {
+            clearInterval(this.timer)
+        }
+        // 下拉刷新
+        async onPullDownRefresh() {
+            // 判断是否存在砍价结果
+            if(this.info.bargain_id){
+                await this.getData()
+            }
+            wx.stopPullDownRefresh()
+        }
+        // 数据加载
+        async onLoad(param) {
+            if (param.hasOwnProperty('scene')) {
+                let scene = decodeURIComponent(param.scene)
+                console.log(scene)
+                let res_1 = util.querystring2obj(scene)
+                param.id = res_1.i
+                param.bargain_id = res_1.bi
+                delete param.scene;
+            }
+            let backpage = encodeURIComponent("/pages/bargaindetail" + util.serialize(param))
+            let res = await this.$parent.LoginCheck(backpage, 1)
+            if (!res) {
+                return false
+            } else {
+                this.loadParam = param;
+                this.wxUser = res
+                this.sessionFrom = JSON.stringify({
+                    nickName: this.wxUser.nickname,
+                    avatarUrl: this.wxUser.avatarurl,
+                    source: '砍价联系客服'
+                })
+                this.$apply();
+                this.getData();
+            }
+            // 初始化nav
+            this.$invoke('nav', 'init', {
+                title: '砍价免费拿'
+            })
+            this.videoAd = wx.createRewardedVideoAd({
+                adUnitId: 'adunit-3b43a626696d88df'
+            })
+            this.videoAd.load().then((res) => {
+                console.log('广告加载成功')
+            }, (res) => {
+                console.log('video load error', res)
+                this.adLoadSuccess = false
+                this.$apply();
+            })
+            this.videoAd.onLoad((res) => {
+                console.log('video ad onload', res)
+            })
+            this.videoAd.onError(err => {
+                console.log('video error', err)
+            })
+            this.videoAd.onClose((status) => {
+                if (status && status.isEnded) {
+                    console.log('ad end close')
+                    this.Kanjia(2) // 双倍砍
+                }
+            })
+        }
+
+        // 分享
+        onShareAppMessage(res){
+            let titles = [
+                '来不及解释了，快帮我砍一刀',
+                '亲们帮我砍一刀，好人一生平安',
+                '很多人帮我砍了，就差你一刀了',
+                '帮我砍一刀嘛，我真的很想要，爱你哟！',
+                '助人为乐，帮我点一下呗,万分感谢您！',
+                '亲们，拜托帮帮忙啊，帮我点一下，求求您了~',
+                '真便宜两助插刀，麻烦您帮我砍一刀',
+                '麻烦帮我砍下价可以么？你最好啦！',
+                '帮我砍个价，送你一个么么哒~',
+                '只差一点点了，我真的很想要这个宝贝，麻烦你帮帮我~',
+                '老铁，是时候展现真正的刀法了，快帮我砍一刀吧~',
+                '亲爱的，帮我点一下，免费商品有机会可以拿，爱你哟~',
+                '不好意思打扰了，帮我点一下可以么，爱你哟~',
+                '快快快，活动快结束了，快帮我砍一刀吧，求你了~',
+                '能帮我点一下吗？祝您快乐每一天！'
+            ];
+            let rd = Math.floor(Math.random() * titles.length)
+            let share = {
+                title : titles[rd],
+                imageUrl:this.info.goods_image
+            }
+            if(res.target){
+                share.path = '/pages/bargaindetail?pid='+this.wxUser.uid + '&flag=1' + '&id='+this.loadParam.id+"&bargain_id="+this.info.bargain_id
+            }else{
+                share.path = '/pages/bargaindetail?pid='+this.wxUser.uid + '&flag=1' + '&id='+this.loadParam.id+"&bargain_id="+this.info.bargain_id
+            }
+            console.log(share);
+            return share
+        }
+
+        // 加载详情页面数据
+        async getData(reload) {
+            clearInterval(this.timer)
+            let that = this
+            let p = {}
+            if (reload) {
+                p = {
+                    id: this.loadParam.id,
+                    bargain_id: this.kanjiaResult.bargain_id
+                };
+            } else {
+                p = {
+                    id: this.loadParam.id,
+                    bargain_id: this.loadParam.bargain_id || ''
+                };
+            }
+            let response = await api.getBargainDetail(p)
+            if (response.code === 200) {
+                this.info = response.data
+                this.has_double = response.data.has_double;
+                if(response.data.bargain_record && response.data.bargain_record.length < this.limit){
+                    this.has = false
+                }
+                that.info.daojishi = util.formatTime(that.info.remain_time)
+                that.info.remain_time--;
+                this.$apply()
+                // 倒计时
+                if(that.info.remain_time > 0){
+                    this.timer = setInterval(() => {
+                        that.info.daojishi = util.formatTime(that.info.remain_time)
+                        that.info.remain_time--
+                            that.$apply()
+                    }, 1000);
+                }
+            } else {
+                this.detailStatus = false;
+                this.$apply()
+                wx.showToast({
+                    title: response.msg,
+                    icon: 'none'
+                })
+            }
+        }
+        // 执行砍价的逻辑
+        async Kanjia(type) {
+            let param = {
+                type: type, // 1代表单砍,2代表双砍
+                id: this.loadParam.id,
+                bargain_id: this.loadParam.bargain_id || '',
+                adLoadSuccess: this.adLoadSuccess
+            }
+            //隐藏砍价的弹出层
+            this.showKjBox = false
+            this.$apply()
+            let response = await api.kanjia(param)
+            if (response.code === 200) {
+                // 判断是否是自己创建
+                if (response.data.is_created) {
+                    this.showSelfKjResult = true
+                    this.kanjiaResult = response.data
+                    this.$apply()
+                } else {
+                    this.showKjResult = true;
+                    this.kanjiaResult = response.data
+                    this.$apply()
+                }
+            } else {
+                wepy.showToast({
+                    title: response.msg,
+                    icon: 'none'
+                })
+            }
+        }
+        methods = {
+            // 生成砍价海报
+            async buildKjHaibao(){
+                let bargain_id = this.loadParam.bargain_id || this.kanjiaResult.bargain_id
+                let id= this.loadParam.id 
+                let param = {
+                    bargain_id:bargain_id,
+                    id:id
+                }
+                let response = await api.getBargainPoster(param)
+                if(response.code == 200){
+                    wx.previewImage({
+                        urls:[response.data.url],
+                    })
+                    // 保存海报到相册
+                    let ret = await util.getAlbumInfo()
+                    if(ret){
+                        wepy.showLoading({
+                            title: '图片保存中..'
+                        })
+                        let download = await wepy.downloadFile({
+                            url: response.data.url
+                        })
+                        let saveResponse = await wepy.saveImageToPhotosAlbum({
+                            filePath: download.tempFilePath
+                        }).catch(e => {
+                            console.log(e)
+                            wepy.hideLoading()
+                            return false
+                        })
+                        wepy.hideLoading()
+                    }
+                }else{
+                    wx.showToast({
+                        title: response.msg,
+                        icon: 'none'
+                    })
+                }
+            },
+            // 显示砍价规则的弹出
+            showRule() {
+                this.ruleStatus = true
+                this.$apply()
+            },
+            // 隐藏砍价规则的弹出
+            hideRule() {
+                this.ruleStatus = false
+                this.$apply()
+            },
+            // 展示砍价的弹出
+            showKjModal() {
+                this.showKjBox = true
+                this.$apply()
+            },
+            // 隐藏砍价的弹出
+            hideKjModal() {
+                this.showKjBox = false
+                this.$apply()
+            },
+            // 砍价的列表
+            looklist() {
+                wepy.switchTab({
+                    url: '/pages/bargain'
+                })
+            },
+            // 普通砍价
+            nomarlKj() {
+                this.Kanjia(1) // 普通的砍价
+            },
+            checkFanxian(){
+                wepy.navigateTo({
+                    url:'/pages/bargainreback'
+                })
+            },
+            // 双倍砍价
+            doubleKj() {
+                this.videoAd.show().catch(err => {
+                    wepy.showToast({
+                        title: '加速砍价失败,试试砍一刀',
+                        icon: 'none'
+                    })
+                    console.log('广告展示失败', err)
+                    this.adLoadSuccess = false;
+                    this.$apply();
+                })
+            },
+            // 隐藏砍价的结果的box
+            hideKjResultBox() {
+                this.showKjResult = false
+                this.getData()
+                this.$apply()
+            },
+            // 关闭自我
+            closeSelfKjBox() {
+                let bargan_id = this.kanjiaResult.bargain_id
+                this.showSelfKjResult = false;
+                this.getData(true)
+            },
+
+            // 我也免费拿
+            createSelfBargain(){
+                wepy.redirectTo({
+                    url: '/pages/bargaindetail?id='+this.loadParam.id
+                })
+            },
+
+            // 去拼多多购买
+            async goPdd(){
+                let param = {
+                    id:this.loadParam.id,
+                    bargain_id:this.info.bargain_id
+                }
+
+                let response = await api.getBargainPddInfo(param);
+                if(response.code === 200){
+                    wepy.navigateToMiniProgram({
+                        appId: response.data.appid,
+                        path: response.data.page_path,
+                        extraData: {
+                            pid: response.data.pid
+                        }
+                    })
+                }else{
+                    wepy.showToast({
+                        title:response.msg,
+                        icon:'none'
+                    })
+                }
+            },
+
+            // 查看更多的砍价的好友
+            async showMore(){
+                if(!this.isLoading && this.has){
+                    this.isLoading = true
+                    wepy.showLoading({
+                        title:'loading...',
+                        mask:true
+                    })
+                    let param = {
+                        page:this.page,
+                        bargain_id: this.info.bargain_id
+                    }
+
+                    let response = await api.getBargainUserRecord(param);
+                    if(response.code === 200){
+                        for(let i of response.data){
+                            this.info.bargain_record.push(i)
+                        }
+                        this.$apply()
+                        this.page++;
+                        if(response.data.length < this.limit){
+                            this.has = false
+                        }
+                    }else{
+                        wepy.showToast({
+                            title:response.msg,
+                            icon:'none'
+                        })
+                    }
+                    this.isLoading = false;
+                    wepy.hideLoading();
+                }
+            }
+        }
+    }
+</script>
+
+<style>
+    page {
+        background: #eeeeee;
+        box-sizing: border-box;
+    }
+</style>
+
+<style lang="less" scoped>
+     @import '../static/bargain.less';
+</style>

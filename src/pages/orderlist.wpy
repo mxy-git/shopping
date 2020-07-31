@@ -1,0 +1,542 @@
+<template>
+    <view id="orderCa">
+        <view class="header">
+            <!-- <view class="tab">
+                    <view class="single active">我的订单</view>
+                </view> -->
+            <view class="comSearch">
+                <view class="search">
+                    <view class="icon icon-search"></view>
+                    <input bindconfirm="bindconfirm" bindinput="bindinput" class="searchVal" bindfocus='bindfocus' bindblur='bindblur' confirmType="search" placeholder="请输入订单号" placeholderClass="placeholderSearchVal" type="text" value="{{inputVal}}" />
+                    <view class="icon icon-close" @tap.stop='inputRemove' hidden="{{inputVal.length == 0}}"></view>
+                </view>
+                <button @tap.stop="bindconfirm">搜索</button>
+            </view>
+            <view class="filter">
+                <view @tap="filterChange('all')" class="single {{filterChecked=='all'?'active':''}}">全部订单</view>
+                <view @tap="filterChange('pay')" class="single {{filterChecked=='pay'?'active':''}}">有效订单</view>
+                <view @tap="filterChange('fail')" class="single {{filterChecked=='fail'?'active':''}}">失效订单</view>
+                <view @tap="filterChange('withdrawal')" class="single {{filterChecked=='withdrawal'?'active':''}}">可提现订单</view>
+            </view>
+            <view class="line" wx:if="{{filterChecked=='pay'}}"></view>
+        </view>
+        <view class="filter2" wx:if="{{filterChecked=='pay'}}">
+            <!-- <view bind:tap="filterChange2" class="single {{filterChecked2=='pay'?'active':''}}" data-key="pay">待成团</view> -->
+            <view @tap="filterChange2('group')" class="single {{filterChecked2=='group'?'active':''}}">已成团</view>
+            <view @tap="filterChange2('sureTake')" class="single {{filterChecked2=='sureTake'?'active':''}}">已收货</view>
+            <view @tap="filterChange2('success')" class="single {{filterChecked2=='success'?'active':''}}">审核成功</view>
+        </view>
+        <view class="list">
+            <view class="item" wx:for="{{orderList}}" wx:key="index">
+                <view class="top">
+                    <view class="userInfo">
+                        <image  lazy-load="true" class="icon" mode="aspectFill" src="{{item.avatarurl}}"  />
+                        <view class="name">{{item.nickname}}</view>
+                    </view>
+                    <view class="status status1" wx:if="{{item.order_status==0}}">待成团</view>
+                    <view class="status status2" wx:if="{{item.order_status==1}}">已成团</view>
+                    <view class="status status3" wx:if="{{item.order_status==2}}">已收货</view>
+                    <view class="status status4" wx:if="{{item.order_status==3}}">审核成功</view>
+                    <view class="status status5" wx:if="{{item.order_status==4}}">已失效</view>
+                    <view class="status status6" wx:if="{{item.order_status==5}}">可提现</view>
+                </view>
+                <view @tap="gotoDetail('{{item.goods_id}}')" class="goodsInfo">
+                    <image lazy-load="true" class="img" mode="aspectFill" src="{{item.goods_thumbnail_url}}" />
+                    <view class="txt">
+                        <view class="title">{{item.goods_name}}</view>
+                        <view class="no">
+                            <view class="v">{{item.order_sn}}</view>
+                            <view @tap.stop="copyOrderSn('{{item.order_sn}}')" class="copy" data-sn="{{item.order_sn}}">
+                                <view class="icon icon-copy"></view>
+                                <view class="t">复制</view>
+                            </view>
+                        </view>
+                        <view class="other">
+                            <view class="ratio">{{item.rate_promotion}}</view>
+                            <view class="time" wx:if="{{item.order_status<3}}">创建:{{item.create_time}}</view>
+                            <view class="time" wx:if="{{item.order_status==4}}">失效:{{item.last_time}}</view>
+                            <view class="time" wx:if="{{item.order_status==3||item.order_status==5}}">处理:{{item.verify_time}}</view>
+                        </view>
+                    </view>
+                </view>
+                <view class="bottom">
+                    <view class="single">
+                        <view class="v">￥{{item.order_amount}}</view>
+                        <view class="t">付款金额</view>
+                    </view>
+                    <view class="single" wx:if="{{wxUser.role == 2}}">
+                        <view class="v">{{item.promotion_rate}}</view>
+                        <view class="t">总佣金比例</view>
+                    </view>
+                    <view class="single" wx:if="{{wxUser.role == 2}}">
+                        <view class="v">￥{{item.promotion_amount}}</view>
+                        <view class="t">总佣金</view>
+                    </view>
+                    <view class="single">
+                        <view class="v">￥{{item.promotion}}</view>
+                        <view class="t">属于自己</view>
+                    </view>
+                </view>
+            </view>
+        </view>
+        <nomore wx:if="{{!has}}"></nomore>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import * as api from "../api/api.js"
+    import Nomore from "../components/nomore"
+    var _self
+    export default class Goodsdetail extends wepy.page {
+        config = {
+            navigationBarTitleText: '我的订单',
+        }
+        data = {
+            wxUser: null,
+            filterChecked: 'all',
+            filterChecked2: 'group',
+            orderList: [],
+            page: 1,
+            has: true,
+            isLoading: false,
+            limit: 10,
+            inputVal: ''
+        }
+        components = {
+            nomore: Nomore
+        }
+        methods = {
+            filterChange(tag, event) {
+                if (this.filterChecked !== tag) {
+                    this.filterChecked = tag
+                    if (tag === 'pay') {
+                        this.filterChecked2 = 'group'
+                    }
+                    this.page = 1
+                    this.has = true
+                    this.isLoading = false
+                    this.$apply()
+                    this.orderList = []
+                    this.getOrderList()
+                }
+            },
+            filterChange2(tag, event) {
+                if (this.filterChecked2 !== tag) {
+                    this.filterChecked2 = tag
+                    this.page = 1
+                    this.has = true
+                    this.isLoading = false
+                    this.orderList = []
+                    this.$apply()
+                    this.getOrderList()
+                }
+            },
+            async copyOrderSn(order_sn, event) {
+                await wepy.setClipboardData({
+                    data: order_sn
+                })
+            },
+            gotoDetail(goods_id, event) {
+                wepy.navigateTo({
+                    url: '/pages/goodsdetail?goods_id=' + goods_id
+                })
+            },
+            bindconfirm() {
+               this.getOrderList(this.inputVal)
+            },
+            bindinput(res) {
+                this.inputVal = res.detail.value
+                return this.inputVal
+            },
+            bindblur() {
+                console.log('bindblur')
+            },
+            inputRemove() {
+                this.inputVal = ''
+                this.$apply()
+            },
+            bindfocus() {
+                console.log('focus')
+                let preg = /^[0-9]{6}-[0-9]{15}$/
+                wx.getClipboardData({
+                    success(clip) {
+                        if (preg.test(clip.data)) {
+                            wx.showModal({
+                                title: '检测到剪切板存在订单',
+                                content: clip.data,
+                                confirmText: '粘贴',
+                                success(res) {
+                                    if (res.confirm) {
+                                        _self.inputVal = clip.data
+                                        _self.$apply()
+                                        wx.setClipboardData({
+                                            data: ' ',
+                                            success() {
+                                                wx.hideToast()
+                                            }
+                                        })
+                                    }
+                                }
+                            })
+                        }
+                    }
+                })
+            }
+        }
+        async getOrderList(order) {
+            if ((this.has || order) && !this.isLoading) {
+                this.isLoading = true
+                wepy.showLoading()
+                let params;
+                if (order) {
+                    params = {
+                        search: order
+                    }
+                } else {
+                    params = {
+                        cate: 1,
+                        order_cate: this.filterChecked,
+                        order_status: this.filterChecked2,
+                        page: this.page
+                    }
+                }
+                let response = await api.getOrderList(params)
+                if (response.code === 200) {
+                    if (order) {
+                        this.orderList = response.data
+                        this.filterChecked = 'all'
+                    } else {
+                        let len = response.data.length
+                        if (len === 0) {
+                            this.has = false
+                        }
+                        for (let i of response.data) {
+                            this.orderList.push(i)
+                        }
+                        this.page++
+                    }
+                    wepy.hideLoading()
+                }else{
+                    wepy.hideLoading()
+                    wepy.showToast({
+                        title: response.msg,
+                        icon: 'none'
+                    })
+                }
+                this.isLoading = false
+                
+                this.$apply()
+            }
+        }
+        async onLoad() {
+            _self = this
+            let backpage = encodeURIComponent('/pages/orderlist')
+            let res = await this.$parent.LoginCheck(backpage, 1)
+            if (!res) {
+                return false
+            } else {
+                this.wxUser = res
+            }
+            wx.hideShareMenu()
+            this.getOrderList()
+        }
+        onReachBottom() {
+            this.getOrderList()
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+    .placeholderSearchVal {
+        color: #999;
+    }
+    #orderCa {
+        padding: 220rpx 32rpx 0 32rpx;
+        overflow: hidden;
+    }
+    #orderCa .header {
+        position: fixed;
+        z-index: 1;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 0 32rpx;
+        background-color: #fff;
+        overflow: hidden;
+    }
+    #orderCa .header .tab {
+        height: 60rpx;
+        padding: 0 20rpx 40rpx;
+        display: flex;
+        justify-content: flex-start;
+        align-items: flex-end;
+    }
+    #orderCa .header .tab .single {
+        color: #999;
+        font-size: 38rpx;
+        line-height: 1;
+        margin-right: 100rpx;
+        white-space: nowrap;
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    #orderCa .header .tab .single.active {
+        color: #000;
+        transform: scale(1.58) translate(14rpx, -6rpx);
+    }
+    #orderCa .header .comSearch {
+        width: 100%;
+        margin-top: 30rpx;
+        display: flex;
+        justify-content: space-between;
+        .search {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            border: 1px solid black;
+            padding: 5rpx;
+            flex-grow: 1;
+            margin-right: 5rpx;
+            .icon {
+                margin-right: 10rpx;
+            }
+            .icon-close {
+                padding: 5px;
+            }
+            input {
+                flex: 1;
+                flex-grow: 1;
+            }
+        }
+        button {
+            background: black;
+            color: white;
+            font-size: 30rpx;
+        }
+    }
+    #orderCa .header .filter {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+    }
+    #orderCa .header .filter .single {
+        color: #999;
+        height: 110rpx;
+        line-height: 110rpx;
+        font-size: 28rpx;
+        text-align: center;
+        white-space: nowrap;
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    #orderCa .header .filter .single.active {
+        color: #FF3333;
+        font-weight: bold;
+    }
+    #orderCa .header .line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-bottom: 1px solid #dbdbdb;
+    }
+    #orderCa .filter2 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1px;
+        padding: 20rpx 0;
+        border-top: 1px solid #eee;
+    }
+    #orderCa .filter2 .single {
+        color: #999;
+        width: 134rpx;
+        height: 50rpx;
+        line-height: 50rpx;
+        font-size: 24rpx;
+        text-align: center;
+        white-space: nowrap;
+        transition: color 0.3s ease;
+        background-color: #f5f5f5;
+        border: solid 1px transparent;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    #orderCa .filter2 .single.active {
+        color: #000;
+        background: url("https://dkpt.oss-cn-qingdao.aliyuncs.com/wechat/dkNew/img/common/checked-icon.png") top right no-repeat #fff;
+        background-size: 32rpx 32rpx;
+        border-color: #000000;
+    }
+    #orderCa .list {
+        overflow: hidden;
+    }
+    #orderCa .list .item {
+        padding: 26rpx 20rpx 0 30rpx;
+        margin-bottom: 26rpx;
+        border-radius: 4px;
+        border: 1px solid #dbdbdb;
+        overflow: hidden;
+    }
+    #orderCa .list .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        overflow: hidden;
+    }
+    #orderCa .list .top .userInfo {
+        flex: 1;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        overflow: hidden;
+    }
+    #orderCa .list .top .userInfo .icon {
+        width: 60rpx;
+        height: 60rpx;
+        border-radius: 100%;
+        overflow: hidden;
+    }
+    #orderCa .list .top .userInfo .name {
+        flex: 1;
+        font-size: 28rpx;
+        margin-left: 20rpx;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    #orderCa .list .top .status {
+        font-size: 24rpx;
+        height: 36rpx;
+        line-height: 36rpx;
+        margin-left: 30rpx;
+        padding: 0 20rpx;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+    #orderCa .list .top .status.status1 {
+        color: #878bd6;
+        border-color: #878bd6;
+    }
+    #orderCa .list .top .status.status2 {
+        color: #0c8215;
+        border-color: #0c8215;
+    }
+    #orderCa .list .top .status.status3 {
+        color: #36b340;
+        border-color: #36b340;
+    }
+    #orderCa .list .top .status.status4 {
+        color: #439b4b;
+        border-color: #439b4b;
+    }
+    #orderCa .list .top .status.status5 {
+        color: #da5650;
+        border-color: #da5650;
+    }
+    #orderCa .list .top .status.status6 {
+        color: #439b4b;
+        border-color: #439b4b;
+    }
+    #orderCa .list .goodsInfo {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 30rpx;
+        overflow: hidden;
+    }
+    #orderCa .list .goodsInfo .img {
+        width: 140rpx;
+        height: 140rpx;
+        margin-right: 25rpx;
+    }
+    #orderCa .list .goodsInfo .txt {
+        flex: 1;
+        line-height: 1;
+        overflow: hidden;
+    }
+    #orderCa .list .goodsInfo .txt .title {
+        font-size: 28rpx;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    #orderCa .list .goodsInfo .txt .no {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 24rpx;
+        overflow: hidden;
+    }
+    #orderCa .list .goodsInfo .txt .no .v {
+        flex: 1;
+        color: #999;
+        margin-right: 20rpx;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    #orderCa .list .goodsInfo .txt .no .copy {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        height: 80rpx;
+        overflow: hidden;
+    }
+    #orderCa .list .goodsInfo .txt .no .copy .icon {
+        color: #000;
+        font-size: 24rpx;
+        margin-right: 10rpx;
+    }
+    #orderCa .list .goodsInfo .txt .no .copy .t {
+        font-size: 24rpx;
+    }
+    #orderCa .list .goodsInfo .txt .other {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 24rpx;
+        overflow: hidden;
+    }
+    #orderCa .list .goodsInfo .txt .other .ratio {
+        color: #fff;
+        height: 36rpx;
+        line-height: 36rpx;
+        padding: 0 20rpx;
+        background-color: #cfaa71;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    #orderCa .list .goodsInfo .txt .other .time {
+        color: #999;
+    }
+    #orderCa .list .bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 34rpx;
+        padding: 15rpx 0;
+        border-top: dotted 1px #dbdbdb;
+        overflow: hidden;
+    }
+    #orderCa .list .bottom .single {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        font-size: 24rpx;
+        border-right: solid 1px #dbdbdb;
+        overflow: hidden;
+    }
+    #orderCa .list .bottom .single:last-child {
+        border-right: none;
+    }
+    #orderCa .list .bottom .single .t {
+        color: #999;
+    }
+    #orderCa .list .bottom .single .v {
+        color: #000;
+        font-size: 32rpx;
+        font-weight: bold;
+    }
+</style>

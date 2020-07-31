@@ -1,0 +1,166 @@
+
+
+<template>
+    <view class="content">
+        <view class="header">官方通知</view>
+        <view class="list">
+            <view @tap="lookDetails('{{item.id}}','{{index}}')" class="single" wx:for="{{msgList}}" wx:key="index">
+                <view class="iconCa">
+                    <image class="icon" mode="scaleToFill" src="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/logo-10.png" />
+                    <view class="dot" wx:if="{{!item.status}}"></view>
+                </view>
+                <view class="txt">
+                    <view class="title">
+                        <view class="v">{{item.title}}</view>
+                        <view class="time">{{item.time}}</view>
+                    </view>
+                    <view class="abstract">{{item.desc}}</view>
+                </view>
+            </view>
+        </view>
+        <nomore wx:if="{{!has}}"></nomore>
+    </view>
+</template>
+
+<script>
+    import wepy from 'wepy'
+    import config from '../config.js'
+    import * as api from '../api/api.js'
+    import Nomore from '../components/nomore';
+    export default class Officialmessage extends wepy.page {
+        config = {
+            navigationBarTitleText: ''
+        }
+        components = {
+            nomore: Nomore
+        }
+        data = {
+            imgHost: config.imgHost,
+            page: 1,
+            limit: 10,
+            has: true,
+            isLoading: false,
+            msgList: []
+        }
+        async loadData() {
+            if (this.isLoading === false && this.has) {
+                this.isLoading = true
+                this.$apply();
+                wepy.showLoading()
+                let data = await api.officialMassageList({
+                    page: this.page
+                })
+                wepy.hideLoading()
+                console.log('official message list', data)
+                if (data.code === 200) {
+                    for (let i of data.data) {
+                        this.msgList.push(i)
+                    }
+                    if (data.data.length < this.limit) {
+                        this.has = false;
+                    }
+                    this.page++
+                        this.isLoading = false
+                    this.$apply()
+                }
+            } else {
+                return true;
+            }
+        }
+        methods = {
+            lookDetails(id, index,event) {
+                this.msgList[index].status = 1
+                wepy.navigateTo({
+                    url: "/pages/messagedetail?id=" + id + "&type=1"
+                });
+                this.$apply()
+            }
+        }
+        onReachBottom() {
+            this.loadData()
+        }
+        onLoad(option) {
+            this.loadData()
+        }
+    }
+</script>
+<style lang="less" scoped>
+    .content {
+        background-color: #f5f5f5;
+        padding: 80rpx 0 0 0;
+        overflow: hidden;
+        .header {
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 32rpx 32rpx 32rpx;
+            background-color: #fff;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .list {
+            background-color: #fff;
+            overflow: hidden;
+            .single {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding: 30rpx 32rpx;
+                border-bottom: 1px solid #f5f5f5;
+                overflow: hidden;
+                .iconCa {
+                    position: relative;
+                    width: 72rpx;
+                    height: 72rpx;
+                    margin-right: 24rpx;
+                    .icon {
+                        width: 72rpx;
+                        height: 72rpx;
+                        border-radius: 100%;
+                    }
+                    .dot {
+                        position: absolute;
+                        top: 0;
+                        right: 0;
+                        width: 16rpx;
+                        height: 16rpx;
+                        background-color: #d84f49;
+                        border-radius: 100%;
+                    }
+                }
+                .txt {
+                    flex: 1;
+                    line-height: 1;
+                    overflow: hidden;
+                    .title {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        overflow: hidden;
+                        .v {
+                            flex: 1;
+                            font-size: 28rpx;
+                            white-space: nowrap;
+                            text-overflow: ellipsis;
+                            overflow: hidden;
+                        }
+                        .time {
+                            color: #999;
+                            font-size: 20rpx;
+                        }
+                    }
+                    .abstract {
+                        color: #999;
+                        font-size: 24rpx;
+                        line-height: 36rpx;
+                        margin-top: 15rpx;
+                    }
+                }
+            }
+            .single:last-child {
+                border-bottom: none;
+            }
+        }
+    }
+</style>

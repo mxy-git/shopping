@@ -1,0 +1,138 @@
+<template>
+    <view class="c-search" wx:if="{{isShow}}" catchtouchmove="return">
+        <view class="c-content">
+            <image class="c-header" src="https://pddke.oss-cn-hangzhou.aliyuncs.com/img/index-search2.png" />
+            <view style="text-align:center;">{{title}}</view>
+            <scroll-view class="c-body" scroll-y="true" style="{{is_goods_id?'text-align:center;font-size:45rpx;padding-top:20rpx;font-weight:blod;':''}}">
+                {{searchContent}}
+            </scroll-view>
+            <view class="c-footer">
+                <view class="btn-cancel" @tap.stop="doCancel">取消</view>
+                <view class="btn-search" @tap.stop="doSearch">搜索</view>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+import wepy from "wepy";
+export default class Search extends wepy.component{
+    data = {
+        isShow:false,
+        title:'',
+        searchContent:'',
+        is_goods_id:false,
+    }
+    methods = {
+        init(res){
+            this.isShow = true
+            this.searchContent = res.search
+            this.title = res.title || ''
+            this.is_goods_id = res.is_goods_id
+            this.$apply()
+        },
+        doCancel(){
+            this.searchContent = ''
+            this.isShow = false
+            this.$apply()
+            wx.setClipboardData({
+                data:' ',// 设置空格,兼容部分安卓手机
+                complete: function() {
+                    wx.hideToast();
+                }
+            })
+        },
+        doSearch(){
+            let key = this.searchContent
+            this.searchContent = ''
+            this.isShow = false
+            this.$apply()
+            wx.setClipboardData({
+                data:' ',// 设置空格,兼容部分安卓手机,
+                complete: function() {
+                    wx.hideToast();
+                }
+            })
+            wepy.navigateTo({
+                url: '/pages/search?key='+key
+            })
+        },
+        preventTouchMove(){
+            return ;
+        }
+    } 
+}
+</script>
+
+<style lang="less" scoped>
+    ::-webkit-scrollbar{
+        width: 0;
+        height: 0;
+        color: transparent;
+    }
+    .c-search{
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background: rgba(0, 0, 0, 0.3);
+        position: fixed;
+        z-index:999;
+        font-size: 30rpx;
+        overflow:hide;
+        display: flex;
+        align-items: center;
+        .c-content{
+            margin: 0 auto;
+            
+            background: white;
+            overflow: hidden;
+            width: 80%;
+            min-height: 300rpx;
+            border-radius: 10rpx;
+            overflow: hidden;
+
+            image.c-header{
+                width: 100%;
+                height: 315rpx;
+            }
+            .c-body{
+                -webkit-overflow-scrolling: touch;
+                min-height: 100rpx;
+                line-height: 50rpx;
+                overflow: scroll;
+                margin-bottom: 10rpx;
+                padding: 0rpx 25rpx 0;
+                word-break: break-all;
+                white-space: wrap;
+                max-height: 300rpx;
+                box-sizing: border-box;
+                min-height: 150rpx;
+            }
+            .c-footer{
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: flex-start;
+                height: 80rpx;
+                line-height: 80rpx;
+                box-sizing: border-box;
+                text-align: center;
+                border-top: 1px solid #eee;
+                font-weight: bold;
+                .btn-cancel{
+                    width: 100%;
+                    border-right: 1px solid #eee;
+                    box-sizing: border-box;
+                    color: #666;
+                    letter-spacing: 4rpx;
+                }
+                .btn-search{
+                    width: 100%;
+                    color: #f67f43;
+                    letter-spacing: 4rpx;
+                }
+            }
+        }
+    }
+</style>

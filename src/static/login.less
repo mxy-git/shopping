@@ -1,0 +1,103 @@
+.container {
+	.swiper-box-1{
+        width: 100vw;
+        height: 100vh;
+        swiper-item{
+            width: 100vw;
+            height: 100vh;
+            .slide-image{
+                width: 100vw;
+                height: 100vh;
+            }
+        }
+    }
+    .update{
+        margin-top: 100rpx;
+        color: white;
+        font-size: 30rpx;
+    }
+
+    .logo {
+        display: block;
+        width: 166rpx;
+        height: 195rpx;
+        margin: 250rpx auto 0 auto;
+    }
+    .text {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #ffffff;
+        font-size: 26rpx;
+        margin-top: 50rpx;
+    }
+    .text::before {
+        position: absolute;
+        content: '';
+        top: -20rpx;
+        left: 50%;
+        width: 40rpx;
+        margin-left: -20rpx;
+        height: 4rpx;
+        background-color: #cfaa71;
+    }
+    .text text {
+        margin: 0 10rpx;
+    }
+    .text text:nth-child(3),
+    .text text:nth-child(4),
+    .text text:nth-child(7),
+    .text text:nth-child(8) {
+        color: #cfaa71;
+    }
+    .text text:nth-child(5) {
+        margin-left: 40rpx;
+    }
+    .tips {
+        color: #999;
+        font-size: 38rpx;
+        margin-top: 150rpx;
+        text-align: center;
+    }
+    .login {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 656rpx;
+        height: 100rpx;
+        background: #cfaa71;
+        border-radius: 4px;
+        margin: 30rpx auto 30rpx auto;
+        margin-top: 100rpx;
+        overflow: visible;
+        .icon {
+            color: #ffffff;
+            font-size: 50rpx;
+        }
+        .txt {
+            color: #ffffff;
+            font-size: 36rpx;
+            margin-left: 10rpx;
+        }
+    }
+    .tips2 {
+        color: #999;
+        font-size: 26rpx;
+        line-height: 1;
+        text-align: center;
+    }
+    .agreement-view {
+        width: 100%;
+        margin: 0 auto;
+        position: fixed;
+        bottom: 70rpx;
+        text-align: center;
+        .agreement {
+            color: #999;
+            font-size: 28rpx;
+        }
+    }
+}
